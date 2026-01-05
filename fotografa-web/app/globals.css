@@ -1,26 +1,34 @@
 @import "tailwindcss";
 
+/* Paleta base estilo “Figma light” */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f6f7fb;   /* gris muy suave (fondo) */
+  --surface: #ffffff;      /* tarjetas / header */
+  --foreground: #0f172a;   /* texto principal (slate-900) */
+  --muted: #475569;        /* texto secundario (slate-600) */
+  --border: #e2e8f0;       /* bordes (slate-200) */
 }
 
-@theme inline {
+/* Tokens compatibles sin @theme (evita 'Unknown at rule @theme') */
+:root {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Opcional: enlaces y selección se ven más “pro” */
+a {
+  text-decoration: none;
 }
