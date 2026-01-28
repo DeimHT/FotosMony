@@ -1,8 +1,131 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import { MOCK_EVENTOS } from "FotosMony/lib/mock-data";
+import { useEffect, useState } from "react";
+import { supabase } from "FotosMony/lib/supabaseClient";
+
+type Foto = {
+  id: string;
+  public_id: string;
+  precio: number;
+};
+
+type SubEventoDB = {
+  id: string;
+  nombre: string;
+  slug: string;
+  fotos?: Foto[];
+};
+
+type EventoDB = {
+  id: string;
+  nombre: string;
+  slug: string;
+  fotos?: Foto[]; // fotos directas si no hay subeventos
+  sub_eventos?: SubEventoDB[];
+};
+
+// Normalizado para usar tu UI actual (subEventos)
+type EventoUI = {
+  id: string;
+  nombre: string;
+  slug: string;
+  fotos?: Foto[];
+  subEventos?: { id: string; nombre: string; slug: string; fotos: Foto[] }[];
+};
+
+function cldUrl(publicId: string, w = 1200) {
+  const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  return `https://res.cloudinary.com/${cloud}/image/upload/f_auto,q_auto,w_${w}/${publicId}`;
+}
 
 export default function EventosPage() {
+  const [eventos, setEventos] = useState<EventoUI[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const load = async () => {
+      setLoading(true);
+      setErrorMsg(null);
+
+      const { data, error } = await supabase
+        .from("eventos")
+        .select(`
+          id,
+          nombre,
+          slug,
+          fotos ( id, public_id, precio ),
+          sub_eventos (
+            id,
+            nombre,
+            slug,
+            fotos ( id, public_id, precio )
+          )
+        `)
+        .order("created_at", { ascending: false });
+
+      if (!mounted) return;
+
+      if (error) {
+        setErrorMsg(error.message);
+        setEventos([]);
+        setLoading(false);
+        return;
+      }
+
+      const dbRows = (data as EventoDB[]) ?? [];
+
+      // Normaliza nombres para calzar con tu UI actual
+      const uiRows: EventoUI[] = dbRows.map((ev) => ({
+        id: ev.id,
+        nombre: ev.nombre,
+        slug: ev.slug,
+        fotos: ev.fotos ?? [],
+        subEventos: (ev.sub_eventos ?? []).map((s) => ({
+          id: s.id,
+          nombre: s.nombre,
+          slug: s.slug,
+          fotos: s.fotos ?? [],
+        })),
+      }));
+
+      setEventos(uiRows);
+      setLoading(false);
+    };
+
+    load();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <main className="mx-auto max-w-6xl px-4 py-8">
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold text-slate-900">Eventos</h1>
+          <p className="mt-1 text-sm text-slate-600">Cargando…</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (errorMsg) {
+    return (
+      <main className="mx-auto max-w-6xl px-4 py-8">
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold text-slate-900">Eventos</h1>
+          <p className="mt-1 text-sm text-red-600">{errorMsg}</p>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto max-w-6xl px-4 py-8">
       <div className="mb-6">
@@ -13,16 +136,22 @@ export default function EventosPage() {
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {MOCK_EVENTOS.map((evento) => {
+        {eventos.map((evento) => {
           const tieneSubEventos = (evento.subEventos?.length ?? 0) > 0;
 
-          console.log("LINK EVENTO =>", `/eventos/${evento.slug}`);
-
           const totalFotos = tieneSubEventos
-            ? evento.subEventos!.reduce((acc, s) => acc + s.fotos.length, 0) // total del torneo
-            : (evento.fotos?.length ?? 0); // total del evento normal
+            ? evento.subEventos!.reduce((acc, s) => acc + (s.fotos?.length ?? 0), 0)
+            : (evento.fotos?.length ?? 0);
 
-          const coverUrl = `https://picsum.photos/seed/${evento.slug}/1200/800`; // placeholder
+          // portada: primera foto disponible (subevento o evento)
+          const portadaPublicId =
+            (tieneSubEventos
+              ? evento.subEventos?.[0]?.fotos?.[0]?.public_id
+              : evento.fotos?.[0]?.public_id) ?? null;
+
+          const coverUrl = portadaPublicId
+            ? cldUrl(portadaPublicId, 1200)
+            : `https://picsum.photos/seed/${evento.slug}/1200/800`;
 
           return (
             <article
@@ -46,7 +175,6 @@ export default function EventosPage() {
                   {evento.nombre}
                 </h2>
 
-                {/* Si después agregas fecha/lugar al mock, lo pones aquí */}
                 <p className="mt-1 text-sm text-slate-600">
                   {tieneSubEventos
                     ? `${evento.subEventos!.length} subeventos`
