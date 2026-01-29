@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "FotosMony/lib/supabaseClient";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type Metrics = {
   totalRevenue: number;
@@ -18,6 +19,7 @@ export default function AdminDashboardPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  
 
   useEffect(() => {
     let mounted = true;
@@ -147,7 +149,7 @@ export default function AdminDashboardPage() {
         <AdminLinkCard
           title="Portafolio"
           desc="Actualiza el portafolio público."
-          href="/admin/portfolio"
+          href="/admin/portafolio"
         />
         <AdminLinkCard
           title="Clientes"
@@ -168,26 +170,19 @@ function StatCard({ title, value }: { title: string; value: string }) {
   );
 }
 
-function AdminLinkCard({
-  title,
-  desc,
-  href,
-}: {
-  title: string;
-  desc: string;
-  href: string;
-}) {
+function AdminLinkCard({ title, desc, href }: { title: string; desc: string; href: string }) {
   return (
-    <a
+    <Link
       href={href}
-      className="rounded-2xl border bg-white p-4 transition hover:bg-slate-50"
+      className="rounded-2xl border bg-white p-4 transition hover:bg-slate-50 block"
     >
       <p className="text-base font-semibold text-slate-900">{title}</p>
       <p className="mt-1 text-sm text-slate-600">{desc}</p>
       <p className="mt-3 text-sm font-semibold text-slate-900">Ir →</p>
-    </a>
+    </Link>
   );
 }
+
 
 function formatCLP(n: number) {
   return new Intl.NumberFormat("es-CL", {

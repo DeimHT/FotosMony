@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { EventosRecientes } from "../components/ui/EventosRecientes";
-import { CTAFinal } from "../components/ui/CTAFinal";
+import { EventosRecientes } from "FotosMony/components/ui/EventosRecientes";
+import { CTAFinal } from "FotosMony/components/ui/CTAFinal";
 
 
 const servicios = [
