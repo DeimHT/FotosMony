@@ -19,7 +19,16 @@ export default function AdminDashboardPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  
+  const [resetting, setResetting] = useState(false);
+
+  const fetchMetrics = async (accessToken: string) => {
+    const res = await fetch("/api/admin/metrics", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const data = await res.json();
+    if (res.ok) return data as Metrics;
+    throw new Error(data?.error ?? "Error");
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -67,23 +76,14 @@ export default function AdminDashboardPage() {
       // 3) pedir métricas al backend (seguro)
       const accessToken = session.access_token;
 
-      const res = await fetch("/api/admin/metrics", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setErrorMsg(data?.error ?? "No se pudieron cargar métricas");
-        setLoading(false);
-        return;
+      try {
+        const data = await fetchMetrics(accessToken);
+        if (mounted) setMetrics(data);
+      } catch (e) {
+        if (mounted) setErrorMsg(e instanceof Error ? e.message : "No se pudieron cargar métricas");
+      } finally {
+        if (mounted) setLoading(false);
       }
-
-      setMetrics(data);
-      setLoading(false);
     };
 
     boot();
@@ -114,6 +114,36 @@ export default function AdminDashboardPage() {
     );
   }
 
+  const handleResetOrders = async () => {
+    if (
+      !confirm(
+        "¿Reiniciar todas las órdenes y ventas de prueba? Se borrarán todos los pedidos e ítems. Esta acción no se puede deshacer."
+      )
+    )
+      return;
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) return;
+    setResetting(true);
+    try {
+      const res = await fetch("/api/admin/reset-orders", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (res.ok) {
+        const updated = await fetchMetrics(token);
+        setMetrics(updated);
+      } else {
+        alert(json?.error ?? "No se pudo reiniciar.");
+      }
+    } catch {
+      alert("Error de conexión.");
+    } finally {
+      setResetting(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="flex flex-col gap-1">
@@ -128,6 +158,20 @@ export default function AdminDashboardPage() {
         <StatCard title="Órdenes pagadas" value={String(metrics?.paidOrders ?? 0)} />
         <StatCard title="Órdenes pendientes" value={String(metrics?.pendingOrders ?? 0)} />
         <StatCard title="Órdenes totales" value={String(metrics?.totalOrders ?? 0)} />
+      </div>
+
+      <div className="mt-4">
+        <button
+          type="button"
+          onClick={handleResetOrders}
+          disabled={resetting}
+          className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+        >
+          {resetting ? "Reiniciando…" : "Reiniciar ventas de prueba"}
+        </button>
+        <p className="mt-1 text-xs text-slate-500">
+          Borra todas las órdenes e ítems de pedidos. Solo para limpiar datos de prueba.
+        </p>
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">

@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import cloudinary from "FotosMony/lib/cloudinary";
@@ -69,7 +70,31 @@ export async function POST(req: Request) {
   const buffer = Buffer.from(await file.arrayBuffer());
   const nombreArchivo = (file.name || "").trim() || null;
 
+  const contentHash = createHash("sha256").update(buffer).digest("hex");
+
   try {
+    // 0) Comprobar si ya existe una foto con el mismo contenido en este evento/subevento
+    let duplicateQuery = supabaseAdmin
+      .from("fotos")
+      .select("id")
+      .eq("content_hash", contentHash)
+      .limit(1);
+
+    if (sub_evento_id) {
+      duplicateQuery = duplicateQuery.eq("sub_evento_id", sub_evento_id);
+    } else {
+      duplicateQuery = duplicateQuery.eq("evento_id", evento_id).is("sub_evento_id", null);
+    }
+
+    const { data: existing } = await duplicateQuery;
+
+    if (existing && existing.length > 0) {
+      return NextResponse.json(
+        { error: "Esta foto ya está subida en este evento o subevento." },
+        { status: 400 }
+      );
+    }
+
     // 1) subir a Cloudinary
     const uploadResult = await new Promise<UploadApiResponse>((resolve, reject) => {
       cloudinary.uploader
@@ -87,13 +112,14 @@ export async function POST(req: Request) {
         .end(buffer);
     });
 
-    // 2) insertar en DB (con nombre original del archivo para WhatsApp, etc.)
+    // 2) insertar en DB (con nombre original del archivo para WhatsApp, etc., y content_hash para evitar duplicados)
     const row = {
       public_id: uploadResult.public_id,
       precio,
       evento_id,
       sub_evento_id,
       nombre_archivo: nombreArchivo,
+      content_hash: contentHash,
     };
 
     const { data: inserted, error: dbErr } = await supabaseAdmin
