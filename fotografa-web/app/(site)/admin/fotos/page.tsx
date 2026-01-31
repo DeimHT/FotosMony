@@ -25,6 +25,59 @@ type UploadRow = {
   public_id?: string;
 };
 
+const MAX_SIZE_BEFORE_COMPRESS = 3 * 1024 * 1024; // 3 MB — Vercel límite ~4.5 MB
+const MAX_DIMENSION = 1920;
+const JPEG_QUALITY = 0.88;
+
+function compressImageIfNeeded(file: File): Promise<File> {
+  if (file.size <= MAX_SIZE_BEFORE_COMPRESS || !file.type.startsWith("image/")) {
+    return Promise.resolve(file);
+  }
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+        if (width > height) {
+          height = Math.round((height * MAX_DIMENSION) / width);
+          width = MAX_DIMENSION;
+        } else {
+          width = Math.round((width * MAX_DIMENSION) / height);
+          height = MAX_DIMENSION;
+        }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(file);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            resolve(file);
+            return;
+          }
+          const name = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+          resolve(new File([blob], name, { type: "image/jpeg" }));
+        },
+        "image/jpeg",
+        JPEG_QUALITY
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(file);
+    };
+    img.src = url;
+  });
+}
+
 export default function AdminFotosPage() {
   const router = useRouter();
 
@@ -227,8 +280,9 @@ export default function AdminFotosPage() {
       );
 
       try {
+        const fileToUpload = await compressImageIfNeeded(file);
         const fd = new FormData();
-        fd.append("file", file);
+        fd.append("file", fileToUpload);
         fd.append("precio", String(precio));
         // Si seleccionas subevento, lo usamos; si no, evento
         if (subEventoId) fd.append("sub_evento_id", subEventoId);
@@ -240,14 +294,23 @@ export default function AdminFotosPage() {
           body: fd,
         });
 
-        const json = await res.json();
+        let json: { error?: string; secure_url?: string; foto?: { public_id?: string } };
+        try {
+          const text = await res.text();
+          json = text ? JSON.parse(text) : {};
+        } catch {
+          json = {};
+        }
 
         if (!res.ok) {
+          const errMsg =
+            json?.error ??
+            (res.status === 413
+              ? "El archivo es demasiado grande (máx. ~4 MB en producción). Comprime la imagen o usa una de menor tamaño."
+              : "Error del servidor");
           setRows((prev) =>
             prev.map((r, idx) =>
-              idx === i
-                ? { ...r, status: "error", message: json?.error ?? "Error" }
-                : r
+              idx === i ? { ...r, status: "error", message: errMsg } : r
             )
           );
         } else {

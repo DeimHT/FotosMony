@@ -41,6 +41,7 @@ export default function EventoPage() {
   const [evento, setEvento] = useState<Evento | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
+  const [subeventoFilter, setSubeventoFilter] = useState("");
 
   // Cargar evento por slug desde DB
   useEffect(() => {
@@ -95,7 +96,15 @@ export default function EventoPage() {
     [evento]
   );
 
-  console.log("eventSlug params =>", eventSlug);
+  const subs = evento?.sub_eventos ?? [];
+  const filteredSubs = useMemo(() => {
+    if (!subeventoFilter.trim()) return subs;
+    const q = subeventoFilter.trim().toLowerCase();
+    return subs.filter(
+      (s) =>
+        s.nombre.toLowerCase().includes(q) || s.slug.toLowerCase().includes(q)
+    );
+  }, [subs, subeventoFilter]);
 
   if (loading) {
     return (
@@ -127,8 +136,6 @@ export default function EventoPage() {
 
   // ✅ Caso 1: Evento con subeventos => listado de subeventos
   if (tieneSubEventos) {
-    const subs = evento.sub_eventos ?? [];
-
     return (
       <main className="mx-auto max-w-6xl px-4 py-8">
         <div className="mb-6">
@@ -138,8 +145,31 @@ export default function EventoPage() {
           </p>
         </div>
 
+        {subs.length > 0 && (
+          <div className="mb-6">
+            <label htmlFor="subevento-filter-public" className="sr-only">
+              Buscar subevento por nombre
+            </label>
+            <input
+              id="subevento-filter-public"
+              type="text"
+              placeholder="Buscar subevento por nombre…"
+              value={subeventoFilter}
+              onChange={(e) => setSubeventoFilter(e.target.value)}
+              className="w-full max-w-md rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-500 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+            />
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {subs.map((s) => {
+          {filteredSubs.length === 0 ? (
+            <p className="col-span-full rounded-2xl border bg-white p-6 text-sm text-slate-600">
+              {subeventoFilter.trim()
+                ? `Ningún subevento coincide con "${subeventoFilter.trim()}".`
+                : "No hay subeventos."}
+            </p>
+          ) : (
+          filteredSubs.map((s) => {
             const countFotos = s.fotos?.length ?? 0;
             return (
               <Link
@@ -163,7 +193,8 @@ export default function EventoPage() {
                 </div>
               </Link>
             );
-          })}
+          })
+          )}
         </div>
       </main>
     );
