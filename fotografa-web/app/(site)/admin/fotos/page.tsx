@@ -271,6 +271,14 @@ export default function AdminFotosPage() {
 
     setBusy(true);
 
+    // Usar token fresco antes de subir (evita 401 por sesión caducada en producción)
+    let currentToken = token;
+    const { data: refreshData } = await supabase.auth.refreshSession();
+    if (refreshData?.session?.access_token) {
+      currentToken = refreshData.session.access_token;
+      setToken(currentToken);
+    }
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
 
@@ -279,20 +287,32 @@ export default function AdminFotosPage() {
         prev.map((r, idx) => (idx === i ? { ...r, status: "uploading" } : r))
       );
 
-      try {
+      const doUpload = async (authToken: string): Promise<Response> => {
         const fileToUpload = await compressImageIfNeeded(file);
         const fd = new FormData();
         fd.append("file", fileToUpload);
         fd.append("precio", String(precio));
-        // Si seleccionas subevento, lo usamos; si no, evento
         if (subEventoId) fd.append("sub_evento_id", subEventoId);
         else fd.append("evento_id", eventoId);
-
-        const res = await fetch("/api/admin/fotos/upload", {
+        return fetch("/api/admin/fotos/upload", {
           method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${authToken}` },
           body: fd,
         });
+      };
+
+      try {
+        let res = await doUpload(currentToken);
+
+        // Si 401, refrescar sesión una vez y reintentar
+        if (res.status === 401) {
+          const { data: retryData } = await supabase.auth.refreshSession();
+          if (retryData?.session?.access_token) {
+            currentToken = retryData.session.access_token;
+            setToken(currentToken);
+            res = await doUpload(currentToken);
+          }
+        }
 
         let json: { error?: string; secure_url?: string; foto?: { public_id?: string } };
         try {
@@ -307,7 +327,9 @@ export default function AdminFotosPage() {
             json?.error ??
             (res.status === 413
               ? "El archivo es demasiado grande (máx. ~4 MB en producción). Comprime la imagen o usa una de menor tamaño."
-              : "Error del servidor");
+              : res.status === 401
+                ? "Sesión caducada. Cierra sesión y vuelve a entrar, luego intenta de nuevo."
+                : "Error del servidor");
           setRows((prev) =>
             prev.map((r, idx) =>
               idx === i ? { ...r, status: "error", message: errMsg } : r
