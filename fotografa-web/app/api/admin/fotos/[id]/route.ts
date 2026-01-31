@@ -21,16 +21,27 @@ export async function DELETE(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Foto no encontrada" }, { status: 404 });
   }
 
-  try {
-    await cloudinary.uploader.destroy(foto.public_id);
-  } catch {
-    // Si falla Cloudinary (ej. ya borrada), seguimos y borramos de BD
+  // order_items tiene FK a fotos: borrar referencias antes de borrar la foto
+  const { error: orderItemsErr } = await supabaseAdmin
+    .from("order_items")
+    .delete()
+    .eq("foto_id", id);
+  if (orderItemsErr) {
+    return NextResponse.json(
+      { error: `Error al desvincular ítems de pedidos: ${orderItemsErr.message}` },
+      { status: 500 }
+    );
   }
 
   const { error: deleteErr } = await supabaseAdmin.from("fotos").delete().eq("id", id);
-
   if (deleteErr) {
     return NextResponse.json({ error: deleteErr.message }, { status: 500 });
+  }
+
+  try {
+    await cloudinary.uploader.destroy(foto.public_id);
+  } catch {
+    // Si falla Cloudinary (ej. ya borrada), la BD ya está actualizada
   }
 
   return NextResponse.json({ message: "Foto eliminada" });

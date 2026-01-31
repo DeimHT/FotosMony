@@ -285,6 +285,40 @@ export default function AdminEventosPage() {
     await loadSubEventos(token, selectedEventoId);
     };
 
+  const deleteEvento = async (ev: Evento) => {
+    if (!token) return;
+    if (!confirm(`¿Eliminar el evento "${ev.nombre}"? Se eliminarán también sus subeventos y fotos.`)) return;
+    setMsg(null);
+    const res = await fetch(`/api/admin/eventos?id=${encodeURIComponent(ev.id)}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      setMsg(json?.error ?? "No se pudo eliminar el evento");
+      return;
+    }
+    setMsg("Evento eliminado ✅");
+    if (selectedEventoId === ev.id) setSelectedEventoId("");
+    await loadEventos(token);
+  };
+
+  const deleteSubEvento = async (s: SubEvento) => {
+    if (!token || !selectedEventoId) return;
+    if (!confirm(`¿Eliminar el subevento "${s.nombre}"? Se eliminarán también sus fotos.`)) return;
+    setMsg(null);
+    const res = await fetch(`/api/admin/subeventos?id=${encodeURIComponent(s.id)}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      setMsg(json?.error ?? "No se pudo eliminar el subevento");
+      return;
+    }
+    setMsg("Subevento eliminado ✅");
+    await loadSubEventos(token, selectedEventoId);
+  };
 
   if (loading) {
     return (
@@ -407,13 +441,22 @@ export default function AdminEventosPage() {
                             <p className="text-xs text-slate-600">{ev.slug}</p>
                         </div>
 
-                        <button
+                        <div className="flex gap-2">
+                            <button
                             type="button"
                             onClick={() => startEditEvento(ev)}
                             className="rounded-lg border px-3 py-2 text-xs font-semibold hover:bg-slate-50"
-                        >
+                            >
                             Editar
-                        </button>
+                            </button>
+                            <button
+                            type="button"
+                            onClick={() => deleteEvento(ev)}
+                            className="rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50"
+                            >
+                            Eliminar
+                            </button>
+                        </div>
                         </div>
                     )}
                     </li>
@@ -508,13 +551,22 @@ export default function AdminEventosPage() {
                             <p className="text-xs text-slate-600">{s.slug}</p>
                         </div>
 
-                        <button
+                        <div className="flex gap-2">
+                            <button
                             type="button"
                             onClick={() => startEditSubEvento(s)}
                             className="rounded-lg border px-3 py-2 text-xs font-semibold hover:bg-slate-50"
-                        >
+                            >
                             Editar
-                        </button>
+                            </button>
+                            <button
+                            type="button"
+                            onClick={() => deleteSubEvento(s)}
+                            className="rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50"
+                            >
+                            Eliminar
+                            </button>
+                        </div>
                         </div>
                     )}
                     </li>

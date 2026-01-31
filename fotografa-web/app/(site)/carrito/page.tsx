@@ -15,6 +15,8 @@ function cldUrl(publicId: string, w = 400) {
 const whatsappDigits = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "").replace(/\D/g, "");
 const WHATSAPP_BASE =
   whatsappDigits.length >= 9 ? `https://wa.me/${whatsappDigits}` : "https://wa.me/56900000000";
+
+const WEBPAY_ENABLED = process.env.NEXT_PUBLIC_WEBPAY_ENABLED === "true";
 const money = new Intl.NumberFormat("es-CL", {
   style: "currency",
   currency: "CLP",
@@ -218,14 +220,20 @@ export default function CarritoPage() {
             )}
 
             <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={handlePagarWebpay}
-                disabled={checkoutLoading}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
-              >
-                {checkoutLoading ? "Redirigiendo a Webpay…" : "Pagar con Webpay"}
-              </button>
+              {WEBPAY_ENABLED ? (
+                <button
+                  type="button"
+                  onClick={handlePagarWebpay}
+                  disabled={checkoutLoading}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+                >
+                  {checkoutLoading ? "Redirigiendo a Webpay…" : "Pagar con Webpay"}
+                </button>
+              ) : (
+                <span className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm text-slate-500">
+                  Pago con Webpay temporalmente no disponible
+                </span>
+              )}
               <a
                 href={whatsappUrl}
                 target="_blank"

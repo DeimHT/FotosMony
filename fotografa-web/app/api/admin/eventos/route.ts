@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import cloudinary from "FotosMony/lib/cloudinary";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -90,5 +91,70 @@ export async function PUT(req: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ evento: data });
+}
+
+export async function DELETE(req: Request) {
+  const gate = await requireAdmin(req);
+  if (!gate.ok) return NextResponse.json({ error: gate.error }, { status: gate.status });
+
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id")?.trim();
+
+  if (!id) {
+    return NextResponse.json({ error: "id es obligatorio" }, { status: 400 });
+  }
+
+  const { data: subeventos, error: subErr } = await supabaseAdmin
+    .from("sub_eventos")
+    .select("id")
+    .eq("evento_id", id);
+
+  if (subErr) return NextResponse.json({ error: subErr.message }, { status: 500 });
+
+  const subIds = (subeventos ?? []).map((s) => s.id);
+
+  const { data: fotosEvento } = await supabaseAdmin
+    .from("fotos")
+    .select("id, public_id")
+    .eq("evento_id", id);
+  const { data: fotosSub } =
+    subIds.length > 0
+      ? await supabaseAdmin.from("fotos").select("id, public_id").in("sub_evento_id", subIds)
+      : { data: [] as { id: string; public_id: string }[] };
+
+  const allFotos = [...(fotosEvento ?? []), ...(fotosSub ?? [])];
+  const allFotoIds = allFotos.map((f) => f.id);
+  const allPublicIds = allFotos.map((f) => f.public_id);
+
+  // order_items tiene FK a fotos: hay que borrar esas filas antes de borrar fotos
+  if (allFotoIds.length > 0) {
+    const { error: orderItemsErr } = await supabaseAdmin
+      .from("order_items")
+      .delete()
+      .in("foto_id", allFotoIds);
+    if (orderItemsErr) {
+      return NextResponse.json(
+        { error: `Error al desvincular ítems de pedidos: ${orderItemsErr.message}` },
+        { status: 500 }
+      );
+    }
+  }
+
+  await supabaseAdmin.from("fotos").delete().eq("evento_id", id);
+  if (subIds.length > 0) {
+    await supabaseAdmin.from("fotos").delete().in("sub_evento_id", subIds);
+  }
+  await supabaseAdmin.from("sub_eventos").delete().eq("evento_id", id);
+
+  const { error: delErr } = await supabaseAdmin.from("eventos").delete().eq("id", id);
+  if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
+
+  if (allPublicIds.length > 0 && typeof cloudinary?.uploader?.destroy === "function") {
+    Promise.all(
+      allPublicIds.map((publicId) => cloudinary.uploader.destroy(publicId).catch(() => {}))
+    ).catch(() => {});
+  }
+
+  return NextResponse.json({ message: "Evento eliminado" });
 }
 

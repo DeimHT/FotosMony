@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import cloudinary from "FotosMony/lib/cloudinary";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -99,5 +100,70 @@ export async function PUT(req: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ subevento: data });
+}
+
+export async function DELETE(req: Request) {
+  const gate = await requireAdmin(req);
+  if (!gate.ok) return NextResponse.json({ error: gate.error }, { status: gate.status });
+
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id")?.trim();
+
+  if (!id) {
+    return NextResponse.json({ error: "id es obligatorio" }, { status: 400 });
+  }
+
+  try {
+    const { data: fotos, error: fotosErr } = await supabaseAdmin
+      .from("fotos")
+      .select("id, public_id")
+      .eq("sub_evento_id", id);
+
+    if (fotosErr) {
+      return NextResponse.json({ error: `Error al listar fotos: ${fotosErr.message}` }, { status: 500 });
+    }
+
+    const fotoIds = (fotos ?? []).map((f) => f.id);
+    const publicIds = (fotos ?? []).map((f) => f.public_id);
+
+    // Si hay order_items que referencian estas fotos, la FK impide borrar. Eliminamos esas filas primero.
+    if (fotoIds.length > 0) {
+      const { error: orderItemsErr } = await supabaseAdmin
+        .from("order_items")
+        .delete()
+        .in("foto_id", fotoIds);
+      if (orderItemsErr) {
+        return NextResponse.json(
+          { error: `Error al desvincular ítems de pedidos: ${orderItemsErr.message}` },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Borrar fotos y luego subevento
+    const { error: delFotosErr } = await supabaseAdmin.from("fotos").delete().eq("sub_evento_id", id);
+    if (delFotosErr) {
+      return NextResponse.json({ error: `Error al eliminar fotos: ${delFotosErr.message}` }, { status: 500 });
+    }
+
+    const { error: delErr } = await supabaseAdmin.from("sub_eventos").delete().eq("id", id);
+    if (delErr) {
+      return NextResponse.json({ error: `Error al eliminar subevento: ${delErr.message}` }, { status: 500 });
+    }
+
+    // Borrar en Cloudinary en segundo plano (no bloquea la respuesta)
+    if (publicIds.length > 0 && typeof cloudinary?.uploader?.destroy === "function") {
+      Promise.all(
+        publicIds.map((publicId) =>
+          cloudinary.uploader.destroy(publicId).catch(() => {})
+        )
+      ).catch(() => {});
+    }
+
+    return NextResponse.json({ message: "Subevento eliminado" });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Error inesperado al eliminar";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }
 
