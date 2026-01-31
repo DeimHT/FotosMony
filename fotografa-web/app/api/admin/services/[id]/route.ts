@@ -56,6 +56,7 @@ export async function PUT(
     sort_order?: number;
     image_url?: string | null;
     image_public_id?: string | null;
+    destacado?: boolean;
   };
 
   const patch: ServicePatch = {};
@@ -68,6 +69,7 @@ export async function PUT(
   if (body.sort_order !== undefined) patch.sort_order = Number(body.sort_order);
   if (body.image_url !== undefined) patch.image_url = body.image_url ? String(body.image_url) : null;
   if (body.image_public_id !== undefined) patch.image_public_id = body.image_public_id ? String(body.image_public_id) : null;
+  if (body.destacado !== undefined) patch.destacado = Boolean(body.destacado);
 
 
   if (patch.title !== undefined && !patch.title) {

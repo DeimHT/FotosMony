@@ -13,6 +13,7 @@ type Service = {
   created_at: string;
   image_url: string | null;
   image_public_id: string | null;
+  destacado: boolean;
 };
 
 export default function AdminServiciosPage() {
@@ -260,6 +261,34 @@ export default function AdminServiciosPage() {
     setBusyId(null);
   };
 
+  const toggleDestacado = async (s: Service) => {
+    setErrorMsg(null);
+    setBusyId(s.id);
+
+    const token = await getToken();
+    if (!token) {
+      setErrorMsg("Sesión no encontrada");
+      setBusyId(null);
+      return;
+    }
+
+    const res = await fetch(`/api/admin/services/${s.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ destacado: !s.destacado }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      setErrorMsg(data?.error ?? "No se pudo actualizar");
+      setBusyId(null);
+      return;
+    }
+
+    setItems((prev) => prev.map((x) => (x.id === s.id ? data : x)));
+    setBusyId(null);
+  };
+
   const remove = async (id: string) => {
     if (!confirm("¿Eliminar este servicio?")) return;
 
@@ -436,6 +465,11 @@ export default function AdminServiciosPage() {
                           <span className={`text-xs rounded-full px-2 py-0.5 border ${s.active ? "text-green-700" : "text-slate-500"}`}>
                             {s.active ? "Activo" : "Inactivo"}
                           </span>
+                          {s.destacado && (
+                            <span className="text-xs rounded-full px-2 py-0.5 border border-amber-300 bg-amber-50 text-amber-800">
+                              Destacado
+                            </span>
+                          )}
                         </div>
                         {s.description && <p className="text-sm text-slate-600 mt-1">{s.description}</p>}
                         {s.price_clp > 0 && (
@@ -494,6 +528,14 @@ export default function AdminServiciosPage() {
                           className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-50"
                         >
                           {s.active ? "Desactivar" : "Activar"}
+                        </button>
+                        <button
+                          disabled={busyId === s.id}
+                          onClick={() => toggleDestacado(s)}
+                          className={`rounded-lg border px-3 py-2 text-sm disabled:opacity-50 ${s.destacado ? "border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100" : "hover:bg-slate-50"}`}
+                          title="Aparece en la sección Servicios Destacados del inicio (máx. 3)"
+                        >
+                          {s.destacado ? "Quitar destacado" : "Destacar"}
                         </button>
                         <button
                           disabled={busyId === s.id}

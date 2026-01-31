@@ -156,6 +156,11 @@ export default function AdminDashboardPage() {
           desc="Lista de clientes y actividad."
           href="/admin/clientes"
         />
+        <AdminLinkCard
+          title="Mensajes de contacto"
+          desc="Mensajes enviados desde el formulario de contacto."
+          href="/admin/mensajes"
+        />
       </div>
     </div>
   );

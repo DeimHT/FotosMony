@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useCart } from "FotosMony/components/context/CartContext";
+import type { CartItem } from "FotosMony/lib/cart";
 import { supabase } from "FotosMony/lib/supabaseClient";
-import { formatPartidoTitle } from "FotosMony/lib/formatters";
 
 type Foto = {
   id: string;
@@ -34,11 +35,14 @@ function cldUrl(publicId: string, w = 800) {
 
 export default function EventoPage() {
   const params = useParams<{ eventSlug: string }>();
+  const router = useRouter();
   const eventSlug = params?.eventSlug;
+  const { addItems } = useCart();
 
   const [loading, setLoading] = useState(true);
   const [evento, setEvento] = useState<Evento | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string[]>([]);
 
   // Cargar evento por slug desde DB
   useEffect(() => {
@@ -170,7 +174,6 @@ export default function EventoPage() {
   // ✅ Caso 2: Evento sin subeventos => galería
   const fotos = evento.fotos ?? [];
 
-  const [selected, setSelected] = useState<string[]>([]);
   const togglePhoto = (id: string) => {
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
@@ -181,8 +184,18 @@ export default function EventoPage() {
   const count = selected.length;
 
   const handleAddToCart = () => {
-    console.log("Agregar al carrito:", selected);
-    // Luego: guardar en carrito (localStorage o tabla cart_items)
+    const toAdd: CartItem[] = fotos
+      .filter((f) => selected.includes(f.id))
+      .map((f) => ({
+        fotoId: f.id,
+        publicId: f.public_id,
+        precio: f.precio,
+        eventoNombre: evento.nombre,
+        eventSlug: evento.slug,
+      }));
+    addItems(toAdd);
+    setSelected([]);
+    router.push("/carrito");
   };
 
   return (
@@ -233,7 +246,7 @@ export default function EventoPage() {
           className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold shadow-lg transition ${
             count === 0
               ? "cursor-not-allowed bg-slate-300 text-slate-600"
-              : "bg-slate-900 text-white hover:bg-slate-800"
+              : "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200 ring-2 ring-blue-400/30"
           }`}
         >
           <span className="rounded-xl bg-white/10 px-2 py-1 text-xs font-bold">

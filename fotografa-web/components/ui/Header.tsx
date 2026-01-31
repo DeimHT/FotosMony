@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { useCart } from "FotosMony/components/context/CartContext";
 import { supabase } from "FotosMony/lib/supabaseClient";
 
 function cn(...classes: Array<string | false | null | undefined>) {
@@ -12,7 +13,7 @@ function cn(...classes: Array<string | false | null | undefined>) {
 const navItems = [
   { label: "Inicio", href: "/" },
   { label: "Servicios", href: "/servicios" },
-  { label: "Portafolio", href: "/portfolio" },
+  { label: "Portafolio", href: "/portafolio" },
   { label: "Eventos", href: "/eventos" },
   { label: "Contacto", href: "/contacto" },
 ];
@@ -21,6 +22,7 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const { totalCount: cartCount } = useCart();
 
   const [email, setEmail] = useState<string | null>(null);
   const [nombre, setNombre] = useState<string | null>(null);
@@ -153,8 +155,24 @@ export default function Header() {
           })}
         </nav>
 
-        {/* Right: Auth buttons + mobile toggle */}
+        {/* Right: Carrito + Auth + mobile toggle */}
         <div className="flex items-center gap-2">
+          <Link
+            href="/carrito"
+            className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border text-slate-700 hover:bg-slate-50"
+            aria-label={`Carrito: ${cartCount} foto(s)`}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M6 7h15l-2 8H8L6 7z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+              <path d="M6 7 5 4H2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              <path d="M9 20a1 1 0 100-2 1 1 0 000 2zm9 0a1 1 0 100-2 1 1 0 000 2z" stroke="currentColor" strokeWidth="2" />
+            </svg>
+            {cartCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-900 px-1.5 text-xs font-bold text-white">
+                {cartCount > 99 ? "99+" : cartCount}
+              </span>
+            )}
+          </Link>
           {/* Desktop auth area */}
           <div className="hidden items-center gap-2 md:flex">
             {loadingAuth ? null : email ? (
@@ -239,6 +257,16 @@ export default function Header() {
                   </Link>
                 );
               })}
+              <Link
+                href="/carrito"
+                onClick={() => setOpen(false)}
+                className={cn(
+                  "rounded-lg px-3 py-2 text-sm font-medium flex items-center gap-2",
+                  pathname === "/carrito" ? "bg-slate-100 text-slate-900" : "text-slate-700 hover:bg-slate-50"
+                )}
+              >
+                Carrito {cartCount > 0 && `(${cartCount})`}
+              </Link>
 
               {/* Mobile auth area */}
               <div className="mt-2 flex flex-col gap-2">

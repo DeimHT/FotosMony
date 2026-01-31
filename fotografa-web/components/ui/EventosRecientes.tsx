@@ -1,33 +1,19 @@
 import Link from "next/link";
 
-const eventosRecientes = [
-  {
-    nombre: "Licenciatura 2024",
-    slug: "licenciatura-2024",
-    fecha: "Diciembre 2024",
-    lugar: "Puerto Montt",
-    coverUrl: "https://picsum.photos/seed/licenciatura-home/1200/800",
-    totalFotos: 180,
-  },
-  {
-    nombre: "Boda María & Juan",
-    slug: "boda-maria-juan",
-    fecha: "Enero 2025",
-    lugar: "Puerto Varas",
-    coverUrl: "https://picsum.photos/seed/boda-home/1200/800",
-    totalFotos: 95,
-  },
-  {
-    nombre: "Sesión Familiar – Verano",
-    slug: "sesion-familiar-verano",
-    fecha: "Febrero 2025",
-    lugar: "Frutillar",
-    coverUrl: "https://picsum.photos/seed/familia-home/1200/800",
-    totalFotos: 60,
-  },
-];
+export type EventoReciente = {
+  nombre: string;
+  slug: string;
+  coverUrl: string;
+  totalFotos: number;
+};
 
-export function EventosRecientes() {
+type Props = {
+  eventos: EventoReciente[];
+};
+
+export function EventosRecientes({ eventos }: Props) {
+  if (eventos.length === 0) return null;
+
   return (
     <section className="mx-auto max-w-7xl px-4 pb-20">
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
@@ -50,7 +36,7 @@ export function EventosRecientes() {
       </div>
 
       <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {eventosRecientes.map((e) => (
+        {eventos.map((e) => (
           <article
             key={e.slug}
             className="overflow-hidden rounded-2xl border bg-white shadow-sm"
@@ -66,13 +52,13 @@ export function EventosRecientes() {
             <div className="p-6">
               <h3 className="text-lg font-semibold text-slate-900">{e.nombre}</h3>
               <p className="mt-1 text-sm text-slate-600">
-                {e.fecha} · {e.lugar}
+                {e.totalFotos} fotos disponibles
               </p>
 
               <ul className="mt-4 space-y-2 text-sm text-slate-700">
                 <li className="flex items-center gap-2">
                   <span className="h-1.5 w-1.5 rounded-full bg-slate-900" />
-                  {e.totalFotos} fotos disponibles (marca de agua)
+                  Fotos con marca de agua para vista previa
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="h-1.5 w-1.5 rounded-full bg-slate-900" />

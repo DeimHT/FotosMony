@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useCart } from "FotosMony/components/context/CartContext";
+import type { CartItem } from "FotosMony/lib/cart";
 import { supabase } from "FotosMony/lib/supabaseClient";
 
 type Foto = {
@@ -31,8 +33,10 @@ function cldUrl(publicId: string, w = 800) {
 
 export default function SubEventoPage() {
   const params = useParams<{ eventSlug: string; subEventSlug: string }>();
+  const router = useRouter();
   const eventSlug = params?.eventSlug;
   const subEventSlug = params?.subEventSlug;
+  const { addItems } = useCart();
 
   const [loading, setLoading] = useState(true);
   const [evento, setEvento] = useState<Evento | null>(null);
@@ -141,8 +145,20 @@ export default function SubEventoPage() {
   const count = selected.length;
 
   const handleAddToCart = () => {
-    console.log("Agregar al carrito:", selected);
-    // siguiente paso: carrito real
+    const toAdd: CartItem[] = fotos
+      .filter((f) => selected.includes(f.id))
+      .map((f) => ({
+        fotoId: f.id,
+        publicId: f.public_id,
+        precio: f.precio,
+        eventoNombre: evento.nombre,
+        eventSlug: evento.slug,
+        subEventoNombre: subEvento.nombre,
+        subEventSlug: subEvento.slug,
+      }));
+    addItems(toAdd);
+    setSelected([]);
+    router.push("/carrito");
   };
 
   return (
@@ -211,7 +227,7 @@ export default function SubEventoPage() {
           className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold shadow-lg transition ${
             count === 0
               ? "cursor-not-allowed bg-slate-300 text-slate-600"
-              : "bg-slate-900 text-white hover:bg-slate-800"
+              : "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200 ring-2 ring-blue-400/30"
           }`}
         >
           <span className="rounded-xl bg-white/10 px-2 py-1 text-xs font-bold">
