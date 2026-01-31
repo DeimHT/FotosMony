@@ -60,27 +60,40 @@ export async function DELETE(req: Request, { params }: RouteContext) {
 
   const { id } = await params;
 
-  const { data: fotos, error: fotosErr } = await supabaseAdmin
-    .from("fotos")
-    .select("id, public_id")
-    .eq("carpeta_id", id);
-
-  if (fotosErr) return NextResponse.json({ error: fotosErr.message }, { status: 500 });
-
-  const fotosList = fotos ?? [];
-
   try {
-    // Eliminar fotos de Cloudinary
-    await Promise.all(
-      fotosList.map(async (foto: { public_id: string }) => {
-        await cloudinary.uploader.destroy(foto.public_id);
-      })
-    );
+    const { data: fotos, error: fotosErr } = await supabaseAdmin
+      .from("fotos")
+      .select("id, public_id")
+      .eq("carpeta_id", id);
 
-    // Eliminar las fotos de la base de datos
-    await supabaseAdmin.from("fotos").delete().eq("carpeta_id", id);
+    if (fotosErr) {
+      return NextResponse.json({ error: fotosErr.message }, { status: 500 });
+    }
 
-    // Eliminar la carpeta
+    const fotosList = fotos ?? [];
+    const fotoIds = fotosList.map((f: { id: string }) => f.id);
+    const publicIds = fotosList.map((f: { public_id: string }) => f.public_id);
+
+    // order_items tiene FK a fotos: borrar referencias antes de borrar fotos
+    if (fotoIds.length > 0) {
+      const { error: orderItemsErr } = await supabaseAdmin
+        .from("order_items")
+        .delete()
+        .in("foto_id", fotoIds);
+      if (orderItemsErr) {
+        return NextResponse.json(
+          { error: `Error al desvincular ítems de pedidos: ${orderItemsErr.message}` },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Borrar fotos y luego carpeta
+    const { error: delFotosErr } = await supabaseAdmin.from("fotos").delete().eq("carpeta_id", id);
+    if (delFotosErr) {
+      return NextResponse.json({ error: `Error al eliminar fotos: ${delFotosErr.message}` }, { status: 500 });
+    }
+
     const { error: carpetaError } = await supabaseAdmin
       .from("carpetas")
       .delete()
@@ -88,6 +101,13 @@ export async function DELETE(req: Request, { params }: RouteContext) {
 
     if (carpetaError) {
       return NextResponse.json({ error: carpetaError.message }, { status: 500 });
+    }
+
+    // Cloudinary en segundo plano (no bloquea la respuesta)
+    if (publicIds.length > 0 && typeof cloudinary?.uploader?.destroy === "function") {
+      Promise.all(
+        publicIds.map((publicId: string) => cloudinary.uploader.destroy(publicId).catch(() => {}))
+      ).catch(() => {});
     }
 
     return NextResponse.json({ message: "Carpeta y fotos eliminadas correctamente" });
