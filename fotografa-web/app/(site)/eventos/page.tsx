@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { cldUrlWithWatermark } from "FotosMony/lib/cloudinaryUrl";
 import { supabase } from "FotosMony/lib/supabaseClient";
 
 type Foto = {
@@ -35,11 +36,6 @@ type EventoUI = {
   subEventos?: { id: string; nombre: string; slug: string; fotos: Foto[] }[];
 };
 
-function cldUrl(publicId: string, w = 1200) {
-  const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  return `https://res.cloudinary.com/${cloud}/image/upload/f_auto,q_auto,w_${w}/${publicId}`;
-}
-
 export default function EventosPage() {
   const [eventos, setEventos] = useState<EventoUI[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,12 +54,12 @@ export default function EventosPage() {
           id,
           nombre,
           slug,
-          fotos ( id, public_id, precio ),
+          fotos ( id, public_id, precio, nombre_archivo ),
           sub_eventos (
             id,
             nombre,
             slug,
-            fotos ( id, public_id, precio )
+            fotos ( id, public_id, precio, nombre_archivo )
           )
         `)
         .order("created_at", { ascending: false });
@@ -150,7 +146,7 @@ export default function EventosPage() {
               : evento.fotos?.[0]?.public_id) ?? null;
 
           const coverUrl = portadaPublicId
-            ? cldUrl(portadaPublicId, 1200)
+            ? cldUrlWithWatermark(portadaPublicId, 1200)
             : `https://picsum.photos/seed/${evento.slug}/1200/800`;
 
           return (

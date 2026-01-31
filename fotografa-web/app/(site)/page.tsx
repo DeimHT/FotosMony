@@ -134,7 +134,7 @@ export default async function HomePage() {
       </section>
 
       {/* SERVICIOS DESTACADOS */}
-      {serviciosDestacados.length > 0 && (
+      {serviciosDestacados && serviciosDestacados.length > 0 && (
         <section className="mx-auto max-w-7xl px-4 pb-16">
           <div className="text-center">
             <h2 className="text-3xl font-semibold text-slate-900">Servicios Destacados</h2>

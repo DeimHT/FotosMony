@@ -11,7 +11,10 @@ function cldUrl(publicId: string, w = 400) {
   return `https://res.cloudinary.com/${cloud}/image/upload/f_auto,q_auto,w_${w}/${publicId}`;
 }
 
-const WHATSAPP_BASE = "https://wa.me/569XXXXXXXX";
+// Número solo dígitos (ej. 56912345678). Si no está configurado, el enlace puede fallar en wa.me
+const whatsappDigits = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "").replace(/\D/g, "");
+const WHATSAPP_BASE =
+  whatsappDigits.length >= 9 ? `https://wa.me/${whatsappDigits}` : "https://wa.me/56900000000";
 const money = new Intl.NumberFormat("es-CL", {
   style: "currency",
   currency: "CLP",
@@ -124,9 +127,20 @@ export default function CarritoPage() {
     }
   };
 
-  const whatsappText = encodeURIComponent(
-    `Hola FotosMony, quiero comprar ${totalCount} foto(s) del carrito. Total: ${money.format(totalPrice)}. Por favor confirmar disponibilidad y forma de pago.`
-  );
+  const whatsappLines = [
+    `Hola FotosMony, quiero comprar ${totalCount} foto(s) del carrito. Total: ${money.format(totalPrice)}. Por favor confirmar disponibilidad y forma de pago.`,
+    "",
+    "Detalle:",
+    ...items.map((item) => {
+      const evento = item.eventoNombre;
+      const subevento = item.subEventoNombre ? ` · ${item.subEventoNombre}` : "";
+      const nombreFoto =
+        item.nombreArchivo ||
+        (item.publicId.includes("/") ? item.publicId.split("/").pop() : item.publicId);
+      return `• Evento: ${evento}${subevento}. Foto: ${nombreFoto} (${money.format(item.precio)})`;
+    }),
+  ];
+  const whatsappText = encodeURIComponent(whatsappLines.join("\n"));
   const whatsappUrl = `${WHATSAPP_BASE}?text=${whatsappText}`;
 
   return (
@@ -215,17 +229,11 @@ export default function CarritoPage() {
               <a
                 href={whatsappUrl}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-green-600 bg-green-50 px-5 py-3 text-sm font-semibold text-green-700 hover:bg-green-100"
               >
                 Solicitar por WhatsApp
               </a>
-              <Link
-                href="/contacto"
-                className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-50"
-              >
-                Escribir por contacto
-              </Link>
               <button
                 type="button"
                 onClick={clearCart}

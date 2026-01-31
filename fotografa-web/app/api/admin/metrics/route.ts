@@ -37,11 +37,10 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: gate.error }, { status: gate.status });
   }
 
-  // Ajusta aquí si tus campos/tablas cambian:
-  // orders: status ('paid'/'pending'), amount (int), created_at
+  // orders: status ('paid'/'pending'), total_clp (int)
   const { data: orders, error } = await supabaseAdmin
     .from("orders")
-    .select("status, amount");
+    .select("status, total_clp");
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -51,7 +50,7 @@ export async function GET(req: Request) {
   const paidOrders = orders?.filter((o) => o.status === "paid").length ?? 0;
   const pendingOrders = orders?.filter((o) => o.status === "pending").length ?? 0;
   const totalRevenue =
-    orders?.reduce((acc, o) => (o.status === "paid" ? acc + (o.amount ?? 0) : acc), 0) ?? 0;
+    orders?.reduce((acc, o) => (o.status === "paid" ? acc + (o.total_clp ?? 0) : acc), 0) ?? 0;
 
   return NextResponse.json({
     totalRevenue,

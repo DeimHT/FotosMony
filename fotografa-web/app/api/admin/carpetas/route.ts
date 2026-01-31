@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "FotosMony/lib/supabaseAdmin";
-import { requireAdmin } from "FotosMony/app/api/admin/route";
+import { requireAdmin } from "FotosMony/lib/requireAdmin";
 import { NextResponse } from "next/server";
 import cloudinary from "FotosMony/lib/cloudinary";
 import type { UploadApiResponse } from "cloudinary";
