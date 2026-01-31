@@ -65,6 +65,7 @@ export async function POST(req: Request) {
   if (envError) {
     return NextResponse.json({ error: envError }, { status: 500 });
   }
+  const db = supabaseAdmin!;
 
   const formData = await req.formData();
 
@@ -95,7 +96,7 @@ export async function POST(req: Request) {
 
   try {
     // 0) Comprobar si ya existe una foto con el mismo contenido en este evento/subevento
-    let duplicateQuery = supabaseAdmin
+    let duplicateQuery = db
       .from("fotos")
       .select("id")
       .eq("content_hash", contentHash)
@@ -143,7 +144,7 @@ export async function POST(req: Request) {
       content_hash: contentHash,
     };
 
-    const { data: inserted, error: dbErr } = await supabaseAdmin
+    const { data: inserted, error: dbErr } = await db
       .from("fotos")
       .insert(row)
       .select("id, public_id, precio, evento_id, sub_evento_id")
