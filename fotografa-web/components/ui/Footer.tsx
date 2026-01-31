@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { FaInstagram, FaFacebookF } from "react-icons/fa";
 
+const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "info@fotosmony.cl";
+const CONTACT_PHONE = process.env.NEXT_PUBLIC_CONTACT_PHONE ?? "+56 9 XXXX XXXX";
+const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "569XXXXXXXX";
+const ADDRESS = "Ignacio Serrano 25, Llanquihue, Los Lagos, Chile";
+const GOOGLE_MAPS_LINK = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ADDRESS)}`;
+
 export default function Footer() {
   return (
     <footer className="mt-24 bg-gradient-to-b from-slate-950 to-slate-900 text-slate-200">
@@ -44,7 +50,9 @@ export default function Footer() {
             {/* Redes */}
             <div className="mt-6 flex gap-3">
                 <a
-                    href="#"
+                    href="https://www.instagram.com/fotosmony.llanquihue/"
+                    target="_blank"
+                    rel="noreferrer"
                     className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 transition"
                     aria-label="Instagram"
                 >
@@ -52,7 +60,9 @@ export default function Footer() {
                 </a>
 
                 <a
-                    href="#"
+                    href="https://www.facebook.com/mony.trujillo.528207"
+                    target="_blank"
+                    rel="noreferrer"
                     className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 transition"
                     aria-label="Facebook"
                 >
@@ -97,13 +107,33 @@ export default function Footer() {
             </h4>
             <ul className="space-y-4 text-sm text-slate-400">
               <li className="flex items-center gap-3">
-                📞 <span>+56 9 XXXX XXXX</span>
+                📞{" "}
+                <a href={`tel:+${CONTACT_PHONE.replace(/\D/g, "").replace(/^0/, "56")}`} className="hover:text-white transition">
+                  {CONTACT_PHONE}
+                </a>
               </li>
               <li className="flex items-center gap-3">
-                ✉️ <span>info@fotosmony.cl</span>
+                ✉️{" "}
+                <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-white transition">
+                  {CONTACT_EMAIL}
+                </a>
               </li>
               <li className="flex items-center gap-3">
-                📍 <span>Región de los Lagos, Chile</span>
+                💬{" "}
+                <a
+                  href={`https://wa.me/${WHATSAPP_NUMBER.replace(/\D/g, "")}?text=${encodeURIComponent("Hola FotosMony, me gustaría consultar 📷")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-white transition"
+                >
+                  WhatsApp
+                </a>
+              </li>
+              <li className="flex items-center gap-3">
+                📍{" "}
+                <a href={GOOGLE_MAPS_LINK} target="_blank" rel="noreferrer" className="hover:text-white transition">
+                  {ADDRESS}
+                </a>
               </li>
             </ul>
           </div>

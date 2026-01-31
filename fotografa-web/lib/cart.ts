@@ -7,6 +7,8 @@ export type CartItem = {
   eventSlug: string;
   subEventoNombre?: string;
   subEventSlug?: string;
+  /** Nombre original del archivo (ej. DSC_9577.JPG) para mostrar en WhatsApp */
+  nombreArchivo?: string;
 };
 
 export const CART_STORAGE_KEY = "fotosmony_cart";

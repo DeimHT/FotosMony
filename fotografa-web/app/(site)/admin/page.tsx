@@ -161,6 +161,11 @@ export default function AdminDashboardPage() {
           desc="Mensajes enviados desde el formulario de contacto."
           href="/admin/mensajes"
         />
+        <AdminLinkCard
+          title="Configuración"
+          desc="Marca de agua y ajustes del sitio."
+          href="/admin/configuracion"
+        />
       </div>
     </div>
   );

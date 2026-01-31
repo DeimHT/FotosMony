@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "FotosMony/lib/supabaseAdmin";
-import { requireAdmin } from "FotosMony/app/api/admin/route";
+import { requireAdmin } from "FotosMony/lib/requireAdmin";
 import cloudinary from "FotosMony/lib/cloudinary";
 
 type RouteContext = { params: Promise<{ id: string }> };

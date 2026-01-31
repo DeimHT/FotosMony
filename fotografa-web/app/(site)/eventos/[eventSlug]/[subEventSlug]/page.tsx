@@ -11,6 +11,7 @@ type Foto = {
   id: string;
   public_id: string;
   precio: number;
+  nombre_archivo?: string | null;
 };
 
 type SubEvento = {
@@ -26,10 +27,7 @@ type Evento = {
   slug: string;
 };
 
-function cldUrl(publicId: string, w = 800) {
-  const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  return `https://res.cloudinary.com/${cloud}/image/upload/f_auto,q_auto,w_${w}/${publicId}`;
-}
+import { cldUrlWithWatermark } from "FotosMony/lib/cloudinaryUrl";
 
 export default function SubEventoPage() {
   const params = useParams<{ eventSlug: string; subEventSlug: string }>();
@@ -77,7 +75,7 @@ export default function SubEventoPage() {
           id,
           nombre,
           slug,
-          fotos ( id, public_id, precio )
+          fotos ( id, public_id, precio, nombre_archivo )
         `
         )
         .eq("slug", subEventSlug)
@@ -155,6 +153,7 @@ export default function SubEventoPage() {
         eventSlug: evento.slug,
         subEventoNombre: subEvento.nombre,
         subEventSlug: subEvento.slug,
+        nombreArchivo: f.nombre_archivo ?? undefined,
       }));
     addItems(toAdd);
     setSelected([]);
@@ -202,7 +201,7 @@ export default function SubEventoPage() {
               }`}
             >
               <img
-                src={cldUrl(foto.public_id, 800)}
+                src={cldUrlWithWatermark(foto.public_id, 800)}
                 alt="Preview"
                 className="block w-full h-auto"
                 loading="lazy"

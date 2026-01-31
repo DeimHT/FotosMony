@@ -67,6 +67,7 @@ export async function POST(req: Request) {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
+  const nombreArchivo = (file.name || "").trim() || null;
 
   try {
     // 1) subir a Cloudinary
@@ -86,12 +87,13 @@ export async function POST(req: Request) {
         .end(buffer);
     });
 
-    // 2) insertar en DB
+    // 2) insertar en DB (con nombre original del archivo para WhatsApp, etc.)
     const row = {
       public_id: uploadResult.public_id,
       precio,
       evento_id,
       sub_evento_id,
+      nombre_archivo: nombreArchivo,
     };
 
     const { data: inserted, error: dbErr } = await supabaseAdmin
