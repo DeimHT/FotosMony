@@ -21,6 +21,13 @@ function generateBuyOrder(): string {
 
 export async function POST(req: Request) {
   try {
+    if (process.env.NEXT_PUBLIC_WEBPAY_ENABLED !== "true") {
+      return NextResponse.json(
+        { error: "Pago con Webpay temporalmente no disponible." },
+        { status: 503 }
+      );
+    }
+
     const body = await req.json();
     const items = body.items as unknown;
 

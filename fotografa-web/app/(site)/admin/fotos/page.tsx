@@ -3,9 +3,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "FotosMony/lib/supabaseClient";
 import { useRouter } from "next/navigation";
+import { cldUrl } from "FotosMony/lib/cloudinaryUrl";
 
 type Evento = { id: string; nombre: string; slug: string };
 type SubEvento = { id: string; evento_id: string; nombre: string; slug: string };
+
+type Foto = {
+  id: string;
+  public_id: string;
+  precio: number;
+  nombre_archivo: string | null;
+  evento_id: string | null;
+  sub_evento_id: string | null;
+};
 
 type UploadRow = {
   name: string;
@@ -26,6 +36,10 @@ export default function AdminFotosPage() {
 
   const [eventoId, setEventoId] = useState("");
   const [subEventoId, setSubEventoId] = useState("");
+
+  const [fotosDelEvento, setFotosDelEvento] = useState<Foto[]>([]);
+  const [loadingFotos, setLoadingFotos] = useState(false);
+  const [deletingFotoId, setDeletingFotoId] = useState<string | null>(null);
 
   const [precio, setPrecio] = useState<number>(2500);
 
@@ -103,6 +117,75 @@ export default function AdminFotosPage() {
       else setSubeventos([]);
     })();
   }, [token, eventoId]);
+
+  // cargar fotos del evento o subevento seleccionado
+  useEffect(() => {
+    if (!token) {
+      setFotosDelEvento([]);
+      return;
+    }
+    if (!eventoId && !subEventoId) {
+      setFotosDelEvento([]);
+      return;
+    }
+
+    let mounted = true;
+    setLoadingFotos(true);
+
+    const params = subEventoId
+      ? `sub_evento_id=${encodeURIComponent(subEventoId)}`
+      : `evento_id=${encodeURIComponent(eventoId)}`;
+
+    fetch(`/api/admin/fotos?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((json) => {
+        if (mounted && json.fotos) setFotosDelEvento(json.fotos);
+      })
+      .catch(() => {
+        if (mounted) setFotosDelEvento([]);
+      })
+      .finally(() => {
+        if (mounted) setLoadingFotos(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [token, eventoId, subEventoId]);
+
+  const loadFotosDelEvento = async () => {
+    if (!token || (!eventoId && !subEventoId)) return;
+    const params = subEventoId
+      ? `sub_evento_id=${encodeURIComponent(subEventoId)}`
+      : `evento_id=${encodeURIComponent(eventoId)}`;
+    const res = await fetch(`/api/admin/fotos?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const json = await res.json();
+    if (res.ok) setFotosDelEvento(json.fotos ?? []);
+  };
+
+  const deleteFoto = async (fotoId: string) => {
+    if (!token) return;
+    if (!confirm("¿Eliminar esta foto? Se borrará de Cloudinary y de la base de datos.")) return;
+    setDeletingFotoId(fotoId);
+    try {
+      const res = await fetch(`/api/admin/fotos/${fotoId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        alert(json?.error ?? "No se pudo eliminar");
+        return;
+      }
+      await loadFotosDelEvento();
+    } finally {
+      setDeletingFotoId(null);
+    }
+  };
 
   const onPickFiles = (f: FileList | null) => {
     const list = f ? Array.from(f) : [];
@@ -190,6 +273,7 @@ export default function AdminFotosPage() {
     }
 
     setBusy(false);
+    if (eventoId || subEventoId) await loadFotosDelEvento();
   };
 
   if (loading) {
@@ -322,6 +406,50 @@ export default function AdminFotosPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Fotos del evento/subevento seleccionado */}
+      <div className="mt-8 rounded-2xl border bg-white p-4">
+        <h2 className="text-base font-semibold text-slate-900">Fotos del evento o subevento</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Selecciona un evento (y opcionalmente un subevento) para ver y eliminar fotos.
+        </p>
+
+        {!eventoId && !subEventoId ? (
+          <p className="mt-4 text-sm text-slate-500">Selecciona un evento arriba para ver sus fotos.</p>
+        ) : loadingFotos ? (
+          <p className="mt-4 text-sm text-slate-600">Cargando fotos…</p>
+        ) : fotosDelEvento.length === 0 ? (
+          <p className="mt-4 text-sm text-slate-500">No hay fotos en este evento/subevento.</p>
+        ) : (
+          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {fotosDelEvento.map((foto) => (
+              <div
+                key={foto.id}
+                className="group relative overflow-hidden rounded-xl border bg-slate-50"
+              >
+                <img
+                  src={cldUrl(foto.public_id, 400)}
+                  alt={foto.nombre_archivo ?? foto.public_id}
+                  className="block w-full aspect-square object-cover"
+                />
+                <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/70 to-transparent opacity-0 transition group-hover:opacity-100">
+                  <button
+                    type="button"
+                    onClick={() => deleteFoto(foto.id)}
+                    disabled={deletingFotoId === foto.id}
+                    className="mb-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {deletingFotoId === foto.id ? "Eliminando…" : "Eliminar"}
+                  </button>
+                </div>
+                <p className="truncate p-2 text-xs text-slate-600">
+                  {foto.nombre_archivo ?? foto.public_id}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
