@@ -93,6 +93,7 @@ export default function AdminFotosPage() {
   const [fotosDelEvento, setFotosDelEvento] = useState<Foto[]>([]);
   const [loadingFotos, setLoadingFotos] = useState(false);
   const [deletingFotoId, setDeletingFotoId] = useState<string | null>(null);
+  const [settingPortadaFotoId, setSettingPortadaFotoId] = useState<string | null>(null);
 
   const [precio, setPrecio] = useState<number>(2500);
 
@@ -237,6 +238,29 @@ export default function AdminFotosPage() {
       await loadFotosDelEvento();
     } finally {
       setDeletingFotoId(null);
+    }
+  };
+
+  const setPortadaDelEvento = async (foto: Foto) => {
+    if (!token || !eventoId) return;
+    setSettingPortadaFotoId(foto.id);
+    try {
+      const res = await fetch("/api/admin/eventos", {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: eventoId, cover_public_id: foto.public_id }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        alert(json?.error ?? "No se pudo establecer la portada");
+        return;
+      }
+      // Opcional: refrescar lista de eventos por si se muestra portada actual en otro sitio
+    } finally {
+      setSettingPortadaFotoId(null);
     }
   };
 
@@ -518,12 +542,22 @@ export default function AdminFotosPage() {
                   alt={foto.nombre_archivo ?? foto.public_id}
                   className="block w-full aspect-square object-cover"
                 />
-                <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/70 to-transparent opacity-0 transition group-hover:opacity-100">
+                <div className="absolute inset-0 flex flex-col items-center justify-end gap-2 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 transition group-hover:opacity-100">
+                  {eventoId && (
+                    <button
+                      type="button"
+                      onClick={() => setPortadaDelEvento(foto)}
+                      disabled={settingPortadaFotoId === foto.id}
+                      className="w-full rounded-lg bg-slate-800 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
+                    >
+                      {settingPortadaFotoId === foto.id ? "Guardando…" : "Usar como portada del evento"}
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => deleteFoto(foto.id)}
                     disabled={deletingFotoId === foto.id}
-                    className="mb-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                    className="w-full rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
                   >
                     {deletingFotoId === foto.id ? "Eliminando…" : "Eliminar"}
                   </button>

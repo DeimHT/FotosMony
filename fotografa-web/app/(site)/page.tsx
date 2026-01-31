@@ -30,7 +30,7 @@ export default async function HomePage() {
   const { data: eventosRaw = [] } = await supabase
     .from("eventos")
     .select(`
-      id, nombre, slug,
+      id, nombre, slug, cover_public_id,
       fotos ( id, public_id, precio ),
       sub_eventos ( id, nombre, slug, fotos ( id, public_id, precio ) )
     `)
@@ -45,6 +45,7 @@ export default async function HomePage() {
     id: string;
     nombre: string;
     slug: string;
+    cover_public_id?: string | null;
     fotos?: { id: string; public_id: string; precio: number }[];
     sub_eventos?: { id: string; nombre: string; slug: string; fotos?: { id: string; public_id: string; precio: number }[] }[];
   };
@@ -55,7 +56,9 @@ export default async function HomePage() {
       ? (ev.sub_eventos ?? []).reduce((acc, s) => acc + (s.fotos?.length ?? 0), 0)
       : (ev.fotos?.length ?? 0);
     const portadaPublicId =
-      (tieneSubEventos ? ev.sub_eventos?.[0]?.fotos?.[0]?.public_id : ev.fotos?.[0]?.public_id) ?? null;
+      ev.cover_public_id ??
+      (tieneSubEventos ? ev.sub_eventos?.[0]?.fotos?.[0]?.public_id : ev.fotos?.[0]?.public_id) ??
+      null;
     const coverUrl = portadaPublicId ? cldUrl(portadaPublicId, 1200) : IMG_LAGOS_LANDSCAPE;
     return { nombre: ev.nombre, slug: ev.slug, coverUrl, totalFotos };
   });

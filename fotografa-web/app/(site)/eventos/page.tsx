@@ -23,6 +23,7 @@ type EventoDB = {
   id: string;
   nombre: string;
   slug: string;
+  cover_public_id?: string | null;
   fotos?: Foto[]; // fotos directas si no hay subeventos
   sub_eventos?: SubEventoDB[];
 };
@@ -32,6 +33,7 @@ type EventoUI = {
   id: string;
   nombre: string;
   slug: string;
+  cover_public_id?: string | null;
   fotos?: Foto[];
   subEventos?: { id: string; nombre: string; slug: string; fotos: Foto[] }[];
 };
@@ -54,6 +56,7 @@ export default function EventosPage() {
           id,
           nombre,
           slug,
+          cover_public_id,
           fotos ( id, public_id, precio, nombre_archivo ),
           sub_eventos (
             id,
@@ -80,6 +83,7 @@ export default function EventosPage() {
         id: ev.id,
         nombre: ev.nombre,
         slug: ev.slug,
+        cover_public_id: ev.cover_public_id ?? null,
         fotos: ev.fotos ?? [],
         subEventos: (ev.sub_eventos ?? []).map((s) => ({
           id: s.id,
@@ -139,11 +143,13 @@ export default function EventosPage() {
             ? evento.subEventos!.reduce((acc, s) => acc + (s.fotos?.length ?? 0), 0)
             : (evento.fotos?.length ?? 0);
 
-          // portada: primera foto disponible (subevento o evento)
+          // portada: cover_public_id si está definida, si no primera foto disponible
           const portadaPublicId =
+            evento.cover_public_id ??
             (tieneSubEventos
               ? evento.subEventos?.[0]?.fotos?.[0]?.public_id
-              : evento.fotos?.[0]?.public_id) ?? null;
+              : evento.fotos?.[0]?.public_id) ??
+            null;
 
           const coverUrl = portadaPublicId
             ? cldUrlWithWatermark(portadaPublicId, 1200)

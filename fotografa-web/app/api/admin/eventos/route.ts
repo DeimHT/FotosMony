@@ -39,7 +39,7 @@ export async function GET(req: Request) {
 
   const { data, error } = await supabaseAdmin
     .from("eventos")
-    .select("id, nombre, slug, created_at")
+    .select("id, nombre, slug, cover_public_id, created_at")
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -156,5 +156,31 @@ export async function DELETE(req: Request) {
   }
 
   return NextResponse.json({ message: "Evento eliminado" });
+}
+
+export async function PATCH(req: Request) {
+  const gate = await requireAdmin(req);
+  if (!gate.ok) return NextResponse.json({ error: gate.error }, { status: gate.status });
+
+  const body = await req.json().catch(() => null);
+  const id = (body?.id ?? "").trim();
+  const cover_public_id =
+    body?.cover_public_id === null || body?.cover_public_id === ""
+      ? null
+      : (body?.cover_public_id ?? "").trim() || null;
+
+  if (!id) {
+    return NextResponse.json({ error: "id es obligatorio" }, { status: 400 });
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("eventos")
+    .update({ cover_public_id })
+    .eq("id", id)
+    .select("id, nombre, slug, cover_public_id")
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ evento: data });
 }
 
