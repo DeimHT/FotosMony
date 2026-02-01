@@ -84,6 +84,9 @@ export async function POST(req: Request) {
             })),
             order.total_clp
           );
+          if (process.env.NODE_ENV === "development") {
+            console.log(`[checkout/confirm] Email enviado a ${customerEmail} con ${items.length} foto(s)`);
+          }
         } catch (emailErr) {
           console.error("Error enviando email de fotos:", emailErr);
           // No fallar la respuesta: el pago ya está confirmado
