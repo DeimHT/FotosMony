@@ -242,19 +242,19 @@ export default function EventoPage() {
           Aún no hay fotos cargadas para este evento.
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="columns-2 gap-4 md:columns-4">
           {fotos.map((foto) => (
             <div
               key={foto.id}
               onClick={() => togglePhoto(foto.id)}
-              className={`relative cursor-pointer overflow-hidden rounded-xl border-4 shadow-md shadow-black/10 transition hover:shadow-xl ${
+              className={`mb-4 break-inside-avoid cursor-pointer overflow-hidden rounded-xl border-4 shadow-md shadow-black/10 transition hover:shadow-xl ${
                 selected.includes(foto.id) ? "border-blue-500" : "border-transparent"
               }`}
             >
               <img
                 src={cldUrlWithWatermark(foto.public_id, 600, 'auto:eco')}
                 alt="Preview"
-                className="h-auto w-full object-cover"
+                className="block w-full h-auto"
                 loading="lazy"
               />
 
