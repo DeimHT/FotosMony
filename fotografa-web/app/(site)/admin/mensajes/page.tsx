@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "FotosMony/lib/supabaseClient";
 import { useRouter } from "next/navigation";
+import { AdminHelpBox } from "FotosMony/components/ui/AdminHelpBox";
 
 type Mensaje = {
   id: string;
@@ -155,6 +156,19 @@ export default function AdminMensajesPage() {
           </button>
         </div>
       )}
+
+      <div className="mt-6">
+        <AdminHelpBox
+          title="¿Cómo funcionan los mensajes?"
+          items={[
+            "Aquí aparecen los mensajes que la gente envía desde el formulario de contacto de tu sitio.",
+            "Los mensajes nuevos aparecen con la etiqueta 'Sin leer' para que sepas cuáles revisar.",
+            "Haz clic en 'Marcar como leído' cuando ya hayas visto o respondido un mensaje.",
+            "Puedes hacer clic en el email del remitente para responderle directamente desde tu correo.",
+            "Los mensajes se ordenan del más nuevo al más antiguo.",
+          ]}
+        />
+      </div>
 
       {loading ? (
         <p className="mt-6 text-slate-600">Cargando...</p>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "FotosMony/lib/supabaseClient";
+import { AdminHelpBox } from "FotosMony/components/ui/AdminHelpBox";
 
 export default function AdminConfiguracionPage() {
   const router = useRouter();
@@ -94,6 +95,18 @@ export default function AdminConfiguracionPage() {
           ← Panel
         </Link>
         <h1 className="text-2xl font-semibold text-slate-900">Configuración</h1>
+      </div>
+
+      <div className="mb-6">
+        <AdminHelpBox
+          title="¿Cómo funciona la configuración?"
+          items={[
+            "La marca de agua es tu logo o texto que aparece sobre las fotos de los eventos.",
+            "Esto evita que la gente descargue las fotos sin pagar (cuando compran, reciben la foto sin marca).",
+            "Solo necesitas subir la marca de agua una vez. Después se aplica automáticamente a todas las fotos.",
+            "Si cambias tu logo, sube la nueva marca de agua y se actualizará en todas las fotos.",
+          ]}
+        />
       </div>
 
       <div className="rounded-2xl border bg-white p-6">

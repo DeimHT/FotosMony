@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "FotosMony/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { cldUrl } from "FotosMony/lib/cloudinaryUrl";
+import { AdminHelpBox } from "FotosMony/components/ui/AdminHelpBox";
 
 type Evento = { id: string; nombre: string; slug: string };
 type SubEvento = { id: string; evento_id: string; nombre: string; slug: string };
@@ -409,6 +410,20 @@ export default function AdminFotosPage() {
         >
           Volver al panel
         </a>
+      </div>
+
+      <div className="mt-6">
+        <AdminHelpBox
+          title="¿Cómo subir fotos?"
+          items={[
+            "Primero selecciona un evento del menú desplegable. Si el evento tiene subeventos, puedes elegir uno.",
+            "El precio que pongas se aplicará a todas las fotos que subas en esta sesión.",
+            "Puedes seleccionar muchas fotos a la vez. Se subirán una por una automáticamente.",
+            "Las fotos se guardan en la nube y aparecerán en la galería del evento con marca de agua.",
+            "Si una foto aparece como 'Error', revisa que no sea muy grande (máximo 4 MB) o intenta de nuevo.",
+            "Abajo puedes ver las fotos ya subidas, eliminarlas o elegir una como portada del evento.",
+          ]}
+        />
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">

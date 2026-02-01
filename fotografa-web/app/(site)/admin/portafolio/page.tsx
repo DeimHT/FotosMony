@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "FotosMony/lib/supabaseClient";
+import { AdminHelpBox } from "FotosMony/components/ui/AdminHelpBox";
 
 type Carpeta = { id: string; nombre: string; descripcion?: string | null };
 type Foto = { id: string; public_id: string };
@@ -338,6 +339,20 @@ export default function AdminPortafolioPage() {
           </button>
         </div>
       )}
+
+      <div className="mt-6">
+        <AdminHelpBox
+          title="¿Cómo funciona el portafolio?"
+          items={[
+            "El portafolio es tu galería pública para mostrar tus mejores trabajos (no son fotos de venta).",
+            "Crea carpetas para organizar tu trabajo (ej: 'Bodas', 'Retratos', 'Paisajes').",
+            "Cada carpeta puede tener muchas fotos. Estas fotos NO tienen marca de agua y son solo para mostrar.",
+            "Los visitantes pueden ver tu portafolio para conocer tu estilo antes de contratarte.",
+            "Puedes editar el nombre y descripción de cada carpeta, y agregar o quitar fotos.",
+            "La primera foto de cada carpeta se usa como portada en la lista de carpetas.",
+          ]}
+        />
+      </div>
 
       {loading ? (
         <p className="mt-6 text-slate-600">Cargando...</p>

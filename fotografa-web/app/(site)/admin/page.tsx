@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "FotosMony/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { AdminHelpBox } from "FotosMony/components/ui/AdminHelpBox";
 
 type Metrics = {
   totalRevenue: number;
@@ -151,6 +152,18 @@ export default function AdminDashboardPage() {
         <p className="text-sm text-slate-600">
           Bienvenido{email ? `, ${email}` : ""}.
         </p>
+      </div>
+
+      <div className="mt-6">
+        <AdminHelpBox
+          title="¿Cómo funciona el Panel Admin?"
+          items={[
+            "Este es tu centro de control. Desde aquí puedes ver tus ventas y acceder a todas las secciones.",
+            "Las tarjetas de arriba muestran cuánto has vendido y el estado de tus pedidos.",
+            "Usa los botones de abajo para ir a cada sección: subir fotos, crear eventos, etc.",
+            "El botón 'Reiniciar ventas de prueba' borra todos los pedidos. Úsalo solo para limpiar datos de prueba.",
+          ]}
+        />
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-4">

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "FotosMony/lib/supabaseClient";
 import { useRouter } from "next/navigation";
+import { AdminHelpBox } from "FotosMony/components/ui/AdminHelpBox";
 
 type Cliente = {
   id: string;
@@ -132,6 +133,19 @@ export default function AdminClientesPage() {
           </button>
         </div>
       )}
+
+      <div className="mt-6">
+        <AdminHelpBox
+          title="¿Cómo funciona la lista de clientes?"
+          items={[
+            "Aquí ves todas las personas que se han registrado en tu sitio web.",
+            "Puedes buscar por nombre o email usando el buscador.",
+            "'Cliente' son usuarios normales. 'Admin' eres tú y quienes administran el sitio.",
+            "'Registro' es cuándo se creó la cuenta. 'Último acceso' es la última vez que entraron.",
+            "Esta lista es solo informativa. No puedes editar ni eliminar usuarios desde aquí.",
+          ]}
+        />
+      </div>
 
       {loading ? (
         <p className="mt-6 text-slate-600">Cargando...</p>

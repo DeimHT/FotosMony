@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "FotosMony/lib/supabaseClient";
+import { AdminHelpBox } from "FotosMony/components/ui/AdminHelpBox";
 
 type Service = {
   id: string;
@@ -362,6 +363,18 @@ export default function AdminServiciosPage() {
           <p className="mt-1 text-sm text-slate-700">{errorMsg}</p>
         </div>
       )}
+
+      <AdminHelpBox
+        title="¿Cómo funcionan los servicios?"
+        items={[
+          "Los servicios son lo que ofreces a tus clientes (ej: 'Sesión fotográfica', 'Foto carnet', 'Impresión').",
+          "Cada servicio aparece en la página de Servicios de tu sitio web.",
+          "Puedes poner un precio de referencia (o dejarlo en 0 si prefieres que te contacten para cotizar).",
+          "'Activo' significa que se muestra en la web. Desactívalo si quieres ocultarlo temporalmente.",
+          "'Destacado' hace que aparezca en la página principal del sitio (máximo 3 destacados).",
+          "Puedes subir una imagen para cada servicio. Si no subes ninguna, se usará una imagen por defecto.",
+        ]}
+      />
 
       {/* Crear */}
       <div className="rounded-2xl border bg-white p-4">

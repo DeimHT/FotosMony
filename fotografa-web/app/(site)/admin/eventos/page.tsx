@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "FotosMony/lib/supabaseClient";
 import { useRouter } from "next/navigation";
+import { AdminHelpBox } from "FotosMony/components/ui/AdminHelpBox";
 
 type Evento = {
   id: string;
@@ -351,6 +352,20 @@ export default function AdminEventosPage() {
           {msg}
         </div>
       )}
+
+      <div className="mt-6">
+        <AdminHelpBox
+          title="¿Cómo funcionan los eventos?"
+          items={[
+            "Un evento es una sesión de fotos (ej: 'Boda María y Juan', 'Graduación 2025').",
+            "Cada evento aparecerá en la página de Eventos de tu sitio web para que los clientes vean las fotos.",
+            "Puedes crear subeventos dentro de un evento (ej: dentro de 'Graduación 2025' crear 'Curso A', 'Curso B').",
+            "Si un evento tiene subeventos, los clientes primero eligen el subevento y luego ven sus fotos.",
+            "El 'slug' es la dirección web del evento (se genera solo, pero puedes editarlo después).",
+            "Para eliminar un evento, primero asegúrate de que ya no necesitas sus fotos porque se borrarán todas.",
+          ]}
+        />
+      </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* Crear evento */}
