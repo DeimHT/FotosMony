@@ -4,8 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { supabase } from "FotosMony/lib/supabaseClient";
+import { GalleryPagination } from "FotosMony/components/ui/GalleryPagination";
 
 type Foto = { id: string; public_id: string };
+
+const PAGE_SIZE = 24;
 type Carpeta = { id: string; nombre: string; descripcion?: string | null; fotos?: Foto[] };
 
 function cldUrl(publicId: string, w = 600) {
@@ -21,6 +24,7 @@ export default function PortafolioCarpetaPage() {
   const [loading, setLoading] = useState(true);
   const [carpeta, setCarpeta] = useState<Carpeta | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     let mounted = true;
@@ -55,6 +59,10 @@ export default function PortafolioCarpetaPage() {
     };
   }, [id]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [id]);
+
   if (loading) {
     return (
       <main className="mx-auto max-w-6xl px-4 py-8">
@@ -79,6 +87,8 @@ export default function PortafolioCarpetaPage() {
   }
 
   const fotos = carpeta.fotos ?? [];
+  const totalPages = Math.max(1, Math.ceil(fotos.length / PAGE_SIZE));
+  const paginatedFotos = fotos.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8">
@@ -101,8 +111,9 @@ export default function PortafolioCarpetaPage() {
           Esta carpeta aún no tiene fotos.
         </div>
       ) : (
+        <>
         <div className="columns-2 gap-4 md:columns-3 lg:columns-4">
-          {fotos.map((foto) => (
+          {paginatedFotos.map((foto) => (
             <div
               key={foto.id}
               className="mb-4 break-inside-avoid overflow-hidden rounded-xl shadow-md shadow-black/10"
@@ -116,6 +127,22 @@ export default function PortafolioCarpetaPage() {
             </div>
           ))}
         </div>
+
+        {totalPages > 1 && (
+          <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 shadow-sm">
+            <GalleryPagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={fotos.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={(p) => {
+                setPage(p);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            />
+          </div>
+        )}
+        </>
       )}
 
       <div className="mt-8">

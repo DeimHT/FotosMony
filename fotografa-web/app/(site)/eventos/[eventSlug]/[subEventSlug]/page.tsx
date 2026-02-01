@@ -28,6 +28,9 @@ type Evento = {
 };
 
 import { cldUrlWithWatermark } from "FotosMony/lib/cloudinaryUrl";
+import { GalleryPagination } from "FotosMony/components/ui/GalleryPagination";
+
+const PAGE_SIZE = 24;
 
 export default function SubEventoPage() {
   const params = useParams<{ eventSlug: string; subEventSlug: string }>();
@@ -41,6 +44,7 @@ export default function SubEventoPage() {
   const [subEvento, setSubEvento] = useState<SubEvento | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
+  const [page, setPage] = useState(1);
 
   // cargar evento + subevento desde DB
   useEffect(() => {
@@ -103,6 +107,10 @@ export default function SubEventoPage() {
     };
   }, [eventSlug, subEventSlug]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [subEvento?.id]);
+
   if (loading) {
     return (
       <main className="mx-auto max-w-6xl px-4 py-8">
@@ -131,8 +139,9 @@ export default function SubEventoPage() {
   }
 
   const fotos = subEvento.fotos ?? [];
+  const totalPages = Math.max(1, Math.ceil(fotos.length / PAGE_SIZE));
+  const paginatedFotos = fotos.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  
   const togglePhoto = (id: string) => {
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
@@ -189,8 +198,9 @@ export default function SubEventoPage() {
           Aún no hay fotos cargadas para este subevento.
         </div>
       ) : (
+        <>
         <div className="columns-2 gap-4 md:columns-4">
-          {fotos.map((foto) => (
+          {paginatedFotos.map((foto) => (
             <div
               key={foto.id}
               onClick={() => togglePhoto(foto.id)}
@@ -215,6 +225,22 @@ export default function SubEventoPage() {
             </div>
           ))}
         </div>
+
+        {totalPages > 1 && (
+          <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 shadow-sm">
+            <GalleryPagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={fotos.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={(p) => {
+                setPage(p);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            />
+          </div>
+        )}
+        </>
       )}
 
       {/* Botón carrito */}

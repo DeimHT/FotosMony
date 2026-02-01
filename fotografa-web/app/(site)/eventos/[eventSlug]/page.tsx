@@ -30,6 +30,9 @@ type Evento = {
 };
 
 import { cldUrlWithWatermark } from "FotosMony/lib/cloudinaryUrl";
+import { GalleryPagination } from "FotosMony/components/ui/GalleryPagination";
+
+const PAGE_SIZE = 24;
 
 export default function EventoPage() {
   const params = useParams<{ eventSlug: string }>();
@@ -42,6 +45,7 @@ export default function EventoPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [subeventoFilter, setSubeventoFilter] = useState("");
+  const [page, setPage] = useState(1);
 
   // Cargar evento por slug desde DB
   useEffect(() => {
@@ -90,6 +94,10 @@ export default function EventoPage() {
       mounted = false;
     };
   }, [eventSlug]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [evento?.id]);
 
   const tieneSubEventos = useMemo(
     () => (evento?.sub_eventos?.length ?? 0) > 0,
@@ -202,6 +210,8 @@ export default function EventoPage() {
 
   // ✅ Caso 2: Evento sin subeventos => galería
   const fotos = evento.fotos ?? [];
+  const totalPages = Math.max(1, Math.ceil(fotos.length / PAGE_SIZE));
+  const paginatedFotos = fotos.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const togglePhoto = (id: string) => {
     setSelected((prev) =>
@@ -242,8 +252,9 @@ export default function EventoPage() {
           Aún no hay fotos cargadas para este evento.
         </div>
       ) : (
+        <>
         <div className="columns-2 gap-4 md:columns-4">
-          {fotos.map((foto) => (
+          {paginatedFotos.map((foto) => (
             <div
               key={foto.id}
               onClick={() => togglePhoto(foto.id)}
@@ -266,6 +277,22 @@ export default function EventoPage() {
             </div>
           ))}
         </div>
+
+        {totalPages > 1 && (
+          <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 shadow-sm">
+            <GalleryPagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={fotos.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={(p) => {
+                setPage(p);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            />
+          </div>
+        )}
+        </>
       )}
 
       <div className="fixed bottom-6 right-6 z-50">
