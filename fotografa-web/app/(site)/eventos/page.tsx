@@ -151,9 +151,10 @@ export default function EventosPage() {
               : evento.fotos?.[0]?.public_id) ??
             null;
 
+          // Reducir tamaño a 600px para cards (ahorra mucho ancho de banda)
           const coverUrl = portadaPublicId
-            ? cldUrlWithWatermark(portadaPublicId, 1200)
-            : `https://picsum.photos/seed/${evento.slug}/1200/800`;
+            ? cldUrlWithWatermark(portadaPublicId, 600, 'auto:eco')
+            : `https://picsum.photos/seed/${evento.slug}/600/400`;
 
           return (
             <article
@@ -167,7 +168,8 @@ export default function EventosPage() {
                   alt={`Portada ${evento.nombre}`}
                   fill
                   className="object-cover"
-                  priority={false}
+                  loading="lazy"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                 />
               </div>
 

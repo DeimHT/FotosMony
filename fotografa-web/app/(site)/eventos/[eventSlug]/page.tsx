@@ -252,7 +252,7 @@ export default function EventoPage() {
               }`}
             >
               <img
-                src={cldUrlWithWatermark(foto.public_id, 800)}
+                src={cldUrlWithWatermark(foto.public_id, 600, 'auto:eco')}
                 alt="Preview"
                 className="h-auto w-full object-cover"
                 loading="lazy"

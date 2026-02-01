@@ -8,9 +8,10 @@ import { supabase } from "FotosMony/lib/supabaseClient";
 type Foto = { id: string; public_id: string };
 type Carpeta = { id: string; nombre: string; descripcion?: string | null; fotos?: Foto[] };
 
-function cldUrl(publicId: string, w = 800) {
+function cldUrl(publicId: string, w = 600) {
   const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  return `https://res.cloudinary.com/${cloud}/image/upload/f_auto,q_auto,w_${w}/${publicId}`;
+  // Usar calidad 'auto:eco' para galerías (ahorra mucho ancho de banda)
+  return `https://res.cloudinary.com/${cloud}/image/upload/f_auto,q_auto:eco,w_${w}/${publicId}`;
 }
 
 export default function PortafolioCarpetaPage() {
@@ -107,7 +108,7 @@ export default function PortafolioCarpetaPage() {
               className="mb-4 break-inside-avoid overflow-hidden rounded-xl shadow-md shadow-black/10"
             >
               <img
-                src={cldUrl(foto.public_id, 800)}
+                src={cldUrl(foto.public_id, 600)}
                 alt=""
                 className="block w-full h-auto"
                 loading="lazy"

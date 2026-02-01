@@ -8,9 +8,10 @@ import { supabase } from "FotosMony/lib/supabaseClient";
 type Foto = { id: string; public_id: string };
 type Carpeta = { id: string; nombre: string; descripcion?: string | null; fotos: Foto[] };
 
-function cldUrl(publicId: string, w = 1200) {
+function cldUrl(publicId: string, w = 600) {
   const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  return `https://res.cloudinary.com/${cloud}/image/upload/f_auto,q_auto,w_${w}/${publicId}`;
+  // Usar calidad 'auto:eco' para ahorrar ancho de banda en thumbnails
+  return `https://res.cloudinary.com/${cloud}/image/upload/f_auto,q_auto:eco,w_${w}/${publicId}`;
 }
 
 export default function PortafolioPage() {
@@ -89,8 +90,8 @@ export default function PortafolioPage() {
             const totalFotos = carpeta.fotos?.length ?? 0;
             const portadaPublicId = carpeta.fotos?.[0]?.public_id ?? null;
             const coverUrl = portadaPublicId
-              ? cldUrl(portadaPublicId, 1200)
-              : "https://picsum.photos/seed/portafolio/1200/800";
+              ? cldUrl(portadaPublicId, 600)
+              : "https://picsum.photos/seed/portafolio/600/400";
 
             return (
               <article
@@ -104,6 +105,7 @@ export default function PortafolioPage() {
                       alt={`Portada ${carpeta.nombre}`}
                       fill
                       className="object-cover"
+                      loading="lazy"
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     />
                   </Link>

@@ -38,8 +38,9 @@ export default async function HomePage() {
     .limit(3);
 
   const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? "";
-  const cldUrl = (publicId: string, w = 1200) =>
-    `https://res.cloudinary.com/${cloud}/image/upload/f_auto,q_auto,w_${w}/${publicId}`;
+  // Reducir tamaño de imágenes para ahorrar ancho de banda (800px es suficiente para cards)
+  const cldUrl = (publicId: string, w = 800) =>
+    `https://res.cloudinary.com/${cloud}/image/upload/f_auto,q_auto:good,w_${w}/${publicId}`;
 
   type EventoRow = {
     id: string;
@@ -59,7 +60,7 @@ export default async function HomePage() {
       ev.cover_public_id ??
       (tieneSubEventos ? ev.sub_eventos?.[0]?.fotos?.[0]?.public_id : ev.fotos?.[0]?.public_id) ??
       null;
-    const coverUrl = portadaPublicId ? cldUrl(portadaPublicId, 1200) : IMG_LAGOS_LANDSCAPE;
+    const coverUrl = portadaPublicId ? cldUrl(portadaPublicId, 800) : IMG_LAGOS_LANDSCAPE;
     return { nombre: ev.nombre, slug: ev.slug, coverUrl, totalFotos };
   });
 
@@ -112,6 +113,7 @@ export default async function HomePage() {
                 height={1100}
                 className="h-full w-full object-cover"
                 priority
+                loading="eager"
               />
             </div>
 
@@ -157,6 +159,7 @@ export default async function HomePage() {
                     src={s.image_url || PLACEHOLDER_SERVICIO}
                     alt={s.title}
                     className="h-full w-full object-cover"
+                    loading="lazy"
                   />
                 </div>
                 <div className="p-6">
@@ -195,6 +198,7 @@ export default async function HomePage() {
                 src={IMG_LAGOS_LANDSCAPE}
                 alt="Paisajes Región de los Lagos, Chile"
                 className="h-full w-full object-cover"
+                loading="lazy"
               />
             </div>
 

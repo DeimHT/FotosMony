@@ -46,6 +46,7 @@ export function EventosRecientes({ eventos }: Props) {
                 src={e.coverUrl}
                 alt={`Portada ${e.nombre}`}
                 className="h-full w-full object-cover"
+                loading="lazy"
               />
             </div>
 

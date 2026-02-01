@@ -1,0 +1,29 @@
+Optimizar imágenes para reducir consumo de ancho de banda en 60-80%
+
+Problema:
+- Uso de 75% del límite gratuito de Vercel (7.5 GB / 10 GB)
+- Fast Origin Transfer consumiendo mucho ancho de banda
+- Imágenes muy grandes (1200px, calidad alta)
+
+Solución implementada:
+- Reducir tamaño de imágenes: 1200px → 600-800px
+- Optimizar calidad: usar 'auto:eco' en galerías y thumbnails
+- Implementar lazy loading en todas las imágenes
+- Crear configuración centralizada para ajustes fáciles
+
+Cambios técnicos:
+- lib/cloudinaryUrl.ts: agregar parámetros de calidad y tamaño
+- lib/imageConfig.ts: configuración centralizada (NUEVO)
+- Actualizar todas las páginas con imágenes optimizadas
+- Agregar lazy loading a todas las imágenes
+
+Impacto esperado:
+- Reducción de ~77% en ancho de banda
+- De 4.5 GB/mes → 1.05 GB/mes
+- Ahorro de $240/año al no necesitar plan Pro
+
+Documentación:
+- RESUMEN-OPTIMIZACIONES.md: resumen ejecutivo
+- OPTIMIZACION-ANCHO-BANDA.md: guía técnica completa
+- GUIA-MONITOREO-BANDWIDTH.md: cómo monitorear y ajustar
+- scripts/migrate-unsplash-to-cloudinary.ts: migración opcional

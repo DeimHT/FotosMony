@@ -201,7 +201,7 @@ export default function SubEventoPage() {
               }`}
             >
               <img
-                src={cldUrlWithWatermark(foto.public_id, 800)}
+                src={cldUrlWithWatermark(foto.public_id, 600, 'auto:eco')}
                 alt="Preview"
                 className="block w-full h-auto"
                 loading="lazy"
