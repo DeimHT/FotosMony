@@ -2,6 +2,12 @@ import { createClient } from "@supabase/supabase-js";
 
 export const revalidate = 60;
 
+export const metadata = {
+  title: "Servicios",
+  description:
+    "Servicios de fotografía FotosMony: sesiones fotográficas, bodas, retratos, impresión y venta de fotos digitales en la Región de los Lagos.",
+};
+
 type Service = {
   id: string;
   title: string;

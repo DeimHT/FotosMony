@@ -4,6 +4,21 @@ import { createClient } from "@supabase/supabase-js";
 import { EventosRecientes } from "FotosMony/components/ui/EventosRecientes";
 import { CTAFinal } from "FotosMony/components/ui/CTAFinal";
 
+const baseUrl =
+  process.env.NEXT_PUBLIC_APP_URL?.startsWith("http") === true
+    ? process.env.NEXT_PUBLIC_APP_URL
+    : `https://${process.env.NEXT_PUBLIC_APP_URL ?? "fotosmony.cl"}`;
+
+export const metadata = {
+  title: "Inicio",
+  description:
+    "Fotos Mony: fotografía profesional en la Región de los Lagos, Chile. Sesiones fotográficas, bodas, retratos. Compra tus fotos digitales sin marca de agua.",
+  openGraph: {
+    title: "FotosMony | Fotografía Región de los Lagos, Chile",
+    description: "Capturamos tus momentos más especiales. Fotografía profesional, sesiones y venta de fotos digitales.",
+  },
+};
+
 // Imágenes de la Región de los Lagos / Patagonia chilena (Unsplash, uso libre)
 const IMG_HERO =
   "https://images.unsplash.com/photo-1718147155878-e2baab858e74?w=900&h=1100&fit=crop&q=80";
@@ -64,8 +79,28 @@ export default async function HomePage() {
     return { nombre: ev.nombre, slug: ev.slug, coverUrl, totalFotos };
   });
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Photographer",
+    name: "FotosMony",
+    alternateName: "Fotos Mony",
+    url: baseUrl,
+    description:
+      "Fotografía profesional en la Región de los Lagos, Chile. Sesiones fotográficas, bodas, retratos y venta de fotos digitales.",
+    areaServed: {
+      "@type": "AdministrativeArea",
+      name: "Región de los Lagos",
+      addressCountry: "CL",
+    },
+    serviceType: ["Fotografía profesional", "Sesiones fotográficas", "Fotografía de bodas", "Retratos"],
+  };
+
   return (
     <main className="bg-[var(--background)]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* HERO */}
       <section className="mx-auto max-w-7xl px-4 py-16">
         <div className="grid items-center gap-12 lg:grid-cols-2">
