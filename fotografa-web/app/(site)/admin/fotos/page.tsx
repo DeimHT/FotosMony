@@ -5,6 +5,9 @@ import { supabase } from "FotosMony/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { cldUrl } from "FotosMony/lib/cloudinaryUrl";
 import { AdminHelpBox } from "FotosMony/components/ui/AdminHelpBox";
+import { GalleryPagination } from "FotosMony/components/ui/GalleryPagination";
+
+const PAGE_SIZE = 24;
 
 type Evento = { id: string; nombre: string; slug: string };
 type SubEvento = { id: string; evento_id: string; nombre: string; slug: string };
@@ -95,6 +98,7 @@ export default function AdminFotosPage() {
   const [loadingFotos, setLoadingFotos] = useState(false);
   const [deletingFotoId, setDeletingFotoId] = useState<string | null>(null);
   const [settingPortadaFotoId, setSettingPortadaFotoId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   const [precio, setPrecio] = useState<number>(2000);
 
@@ -209,6 +213,10 @@ export default function AdminFotosPage() {
       mounted = false;
     };
   }, [token, eventoId, subEventoId]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [eventoId, subEventoId]);
 
   const loadFotosDelEvento = async () => {
     if (!token || (!eventoId && !subEventoId)) return;
@@ -546,8 +554,11 @@ export default function AdminFotosPage() {
         ) : fotosDelEvento.length === 0 ? (
           <p className="mt-4 text-sm text-slate-500">No hay fotos en este evento/subevento.</p>
         ) : (
+          <>
           <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {fotosDelEvento.map((foto) => (
+            {fotosDelEvento
+              .slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+              .map((foto) => (
               <div
                 key={foto.id}
                 className="group relative overflow-hidden rounded-xl border bg-slate-50"
@@ -583,6 +594,22 @@ export default function AdminFotosPage() {
               </div>
             ))}
           </div>
+
+          {Math.ceil(fotosDelEvento.length / PAGE_SIZE) > 1 && (
+            <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 shadow-sm">
+              <GalleryPagination
+                currentPage={page}
+                totalPages={Math.max(1, Math.ceil(fotosDelEvento.length / PAGE_SIZE))}
+                totalItems={fotosDelEvento.length}
+                pageSize={PAGE_SIZE}
+                onPageChange={(p) => {
+                  setPage(p);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+              />
+            </div>
+          )}
+          </>
         )}
       </div>
     </div>
