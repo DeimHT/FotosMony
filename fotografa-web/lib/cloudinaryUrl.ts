@@ -7,8 +7,8 @@ import { IMAGE_CONFIG } from './imageConfig';
 
 export function cldUrl(
   publicId: string, 
-  w = IMAGE_CONFIG.MAIN_WIDTH, 
-  quality = IMAGE_CONFIG.MAIN_QUALITY
+  w: number = IMAGE_CONFIG.MAIN_WIDTH, 
+  quality: string = IMAGE_CONFIG.MAIN_QUALITY
 ): string {
   const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   // f_auto: formato automático (webp cuando sea posible)
@@ -23,8 +23,8 @@ export function cldUrl(
  */
 export function cldUrlWithWatermark(
   publicId: string, 
-  w = IMAGE_CONFIG.WATERMARK_WIDTH, 
-  quality = IMAGE_CONFIG.WATERMARK_QUALITY
+  w: number = IMAGE_CONFIG.WATERMARK_WIDTH, 
+  quality: string = IMAGE_CONFIG.WATERMARK_QUALITY
 ): string {
   const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   const watermarkId = process.env.NEXT_PUBLIC_CLOUDINARY_WATERMARK_PUBLIC_ID;
@@ -46,7 +46,7 @@ export function cldUrlWithWatermark(
  */
 export function cldUrlThumbnail(
   publicId: string, 
-  w = IMAGE_CONFIG.THUMBNAIL_WIDTH
+  w: number = IMAGE_CONFIG.THUMBNAIL_WIDTH
 ): string {
   const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   return `https://res.cloudinary.com/${cloud}/image/upload/f_auto,q_${IMAGE_CONFIG.THUMBNAIL_QUALITY},w_${w}/${publicId}`;
