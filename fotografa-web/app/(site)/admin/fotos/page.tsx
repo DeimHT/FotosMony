@@ -95,7 +95,7 @@ export default function AdminFotosPage() {
   const [deletingFotoId, setDeletingFotoId] = useState<string | null>(null);
   const [settingPortadaFotoId, setSettingPortadaFotoId] = useState<string | null>(null);
 
-  const [precio, setPrecio] = useState<number>(2500);
+  const [precio, setPrecio] = useState<number>(2000);
 
   const [files, setFiles] = useState<File[]>([]);
   const [rows, setRows] = useState<UploadRow[]>([]);
