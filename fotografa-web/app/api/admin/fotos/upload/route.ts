@@ -1,16 +1,35 @@
-import { createHash } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import cloudinary from "FotosMony/lib/cloudinary";
-import type { UploadApiResponse } from "cloudinary";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+const CLOUDFLARE_R2_ACCOUNT_ID = process.env.CLOUDFLARE_R2_ACCOUNT_ID;
+const CLOUDFLARE_R2_ACCESS_KEY_ID = process.env.CLOUDFLARE_R2_ACCESS_KEY_ID;
+const CLOUDFLARE_R2_SECRET_ACCESS_KEY = process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY;
+const CLOUDFLARE_R2_BUCKET_NAME = process.env.CLOUDFLARE_R2_BUCKET_NAME;
 
 const supabaseAdmin =
   SUPABASE_URL && SUPABASE_SERVICE_KEY
     ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
     : null;
+
+function getR2Client(): S3Client | null {
+  if (!CLOUDFLARE_R2_ACCOUNT_ID || !CLOUDFLARE_R2_ACCESS_KEY_ID || !CLOUDFLARE_R2_SECRET_ACCESS_KEY) {
+    return null;
+  }
+  return new S3Client({
+    region: "auto",
+    endpoint: `https://${CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: {
+      accessKeyId: CLOUDFLARE_R2_ACCESS_KEY_ID,
+      secretAccessKey: CLOUDFLARE_R2_SECRET_ACCESS_KEY,
+    },
+    forcePathStyle: true,
+  });
+}
 
 async function requireAdmin(req: Request) {
   if (!supabaseAdmin) {
@@ -47,25 +66,28 @@ function toInt(v: FormDataEntryValue | null) {
   return n;
 }
 
-function checkUploadEnv(): string | null {
-  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-    return "Configuración de Cloudinary faltante en el servidor (CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET)";
-  }
-  if (!supabaseAdmin) {
-    return "Configuración de Supabase faltante en el servidor";
-  }
-  return null;
+function getExt(name: string): string {
+  const m = name.match(/\.(jpe?g|png|webp|gif)$/i);
+  return m ? m[1].toLowerCase().replace("jpeg", "jpg") : "jpg";
 }
 
 export async function POST(req: Request) {
   const gate = await requireAdmin(req);
   if (!gate.ok) return NextResponse.json({ error: gate.error }, { status: gate.status });
 
-  const envError = checkUploadEnv();
-  if (envError) {
-    return NextResponse.json({ error: envError }, { status: 500 });
+  if (!supabaseAdmin) {
+    return NextResponse.json({ error: "Configuración de Supabase faltante en el servidor" }, { status: 500 });
   }
-  const db = supabaseAdmin!;
+
+  const r2Client = getR2Client();
+  if (!r2Client || !CLOUDFLARE_R2_BUCKET_NAME) {
+    return NextResponse.json(
+      { error: "Configuración de Cloudflare R2 faltante (CLOUDFLARE_R2_ACCOUNT_ID, ACCESS_KEY, SECRET, BUCKET_NAME)" },
+      { status: 500 }
+    );
+  }
+
+  const db = supabaseAdmin;
 
   const formData = await req.formData();
 
@@ -91,11 +113,12 @@ export async function POST(req: Request) {
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const nombreArchivo = (file.name || "").trim() || null;
-
   const contentHash = createHash("sha256").update(buffer).digest("hex");
+  const ext = getExt(file.name || "image.jpg");
+  const pathSegment = sub_evento_id ?? evento_id!;
+  const storagePath = `eventos/${pathSegment}/${randomUUID()}.${ext}`;
 
   try {
-    // 0) Comprobar si ya existe una foto con el mismo contenido en este evento/subevento
     let duplicateQuery = db
       .from("fotos")
       .select("id")
@@ -117,26 +140,19 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1) subir a Cloudinary
-    const uploadResult = await new Promise<UploadApiResponse>((resolve, reject) => {
-      cloudinary.uploader
-        .upload_stream(
-          {
-            folder: "eventos",
-            resource_type: "image",
-          },
-          (error, result) => {
-            if (error) return reject(error);
-            if (!result) return reject(new Error("Cloudinary: empty result"));
-            resolve(result);
-          }
-        )
-        .end(buffer);
-    });
+    const contentType = file.type || (ext === "png" ? "image/png" : "image/jpeg");
+    await r2Client.send(
+      new PutObjectCommand({
+        Bucket: CLOUDFLARE_R2_BUCKET_NAME,
+        Key: storagePath,
+        Body: buffer,
+        ContentType: contentType,
+      })
+    );
 
-    // 2) insertar en DB (con nombre original del archivo para WhatsApp, etc., y content_hash para evitar duplicados)
     const row = {
-      public_id: uploadResult.public_id,
+      public_id: storagePath,
+      storage_provider: "cloudflare",
       precio,
       evento_id,
       sub_evento_id,
@@ -147,17 +163,22 @@ export async function POST(req: Request) {
     const { data: inserted, error: dbErr } = await db
       .from("fotos")
       .insert(row)
-      .select("id, public_id, precio, evento_id, sub_evento_id")
+      .select("id, public_id, storage_provider, precio, evento_id, sub_evento_id")
       .single();
 
     if (dbErr) {
       return NextResponse.json({ error: dbErr.message }, { status: 500 });
     }
 
+    const publicUrl = process.env.CLOUDFLARE_R2_PUBLIC_URL;
+    const secure_url = publicUrl
+      ? `${publicUrl.replace(/\/$/, "")}/${storagePath}`
+      : `https://${CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${CLOUDFLARE_R2_BUCKET_NAME}/${storagePath}`;
+
     return NextResponse.json({
       ok: true,
       foto: inserted,
-      secure_url: uploadResult.secure_url, // útil para preview
+      secure_url,
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Error subiendo imagen";

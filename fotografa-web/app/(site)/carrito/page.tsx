@@ -3,13 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useCart } from "FotosMony/components/context/CartContext";
+import { watermarkUrl } from "FotosMony/lib/cloudinaryUrl";
 import { supabase } from "FotosMony/lib/supabaseClient";
 import type { CartItem } from "FotosMony/lib/cart";
-
-function cldUrl(publicId: string, w = 400) {
-  const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  return `https://res.cloudinary.com/${cloud}/image/upload/f_auto,q_auto,w_${w}/${publicId}`;
-}
 
 // Número solo dígitos (ej. 56912345678). Si no está configurado, el enlace puede fallar en wa.me
 const whatsappDigits = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "").replace(/\D/g, "");
@@ -34,7 +30,7 @@ function CartRow({
     <div className="flex gap-4 rounded-xl border bg-white p-4">
       <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg border bg-slate-100">
         <img
-          src={cldUrl(item.publicId, 200)}
+          src={watermarkUrl(item.publicId, 200, item.storageProvider)}
           alt=""
           className="h-full w-full object-cover"
         />

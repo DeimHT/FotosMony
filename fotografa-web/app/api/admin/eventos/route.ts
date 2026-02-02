@@ -168,6 +168,14 @@ export async function PATCH(req: Request) {
     body?.cover_public_id === null || body?.cover_public_id === ""
       ? null
       : (body?.cover_public_id ?? "").trim() || null;
+  const cover_storage_provider =
+    cover_public_id == null
+      ? null
+      : body?.cover_storage_provider === "cloudflare"
+        ? "cloudflare"
+        : body?.cover_storage_provider === "supabase"
+          ? "supabase"
+          : null;
 
   if (!id) {
     return NextResponse.json({ error: "id es obligatorio" }, { status: 400 });
@@ -175,9 +183,9 @@ export async function PATCH(req: Request) {
 
   const { data, error } = await supabaseAdmin
     .from("eventos")
-    .update({ cover_public_id })
+    .update({ cover_public_id, cover_storage_provider })
     .eq("id", id)
-    .select("id, nombre, slug, cover_public_id")
+    .select("id, nombre, slug, cover_public_id, cover_storage_provider")
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

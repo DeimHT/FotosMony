@@ -53,7 +53,7 @@ export async function GET(req: Request) {
 
   let query = supabaseAdmin
     .from("fotos")
-    .select("id, public_id, precio, nombre_archivo, evento_id, sub_evento_id")
+    .select("id, public_id, precio, nombre_archivo, evento_id, sub_evento_id, storage_provider")
     .order("id", { ascending: false });
 
   if (sub_evento_id) {

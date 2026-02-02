@@ -45,25 +45,21 @@ export default async function HomePage() {
   const { data: eventosRaw = [] } = await supabase
     .from("eventos")
     .select(`
-      id, nombre, slug, cover_public_id,
-      fotos ( id, public_id, precio ),
-      sub_eventos ( id, nombre, slug, fotos ( id, public_id, precio ) )
+      id, nombre, slug, cover_public_id, cover_storage_provider,
+      fotos ( id, public_id, precio, storage_provider ),
+      sub_eventos ( id, nombre, slug, fotos ( id, public_id, precio, storage_provider ) )
     `)
     .order("created_at", { ascending: false })
     .limit(3);
-
-  const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? "";
-  // Reducir tamaño de imágenes para ahorrar ancho de banda (800px es suficiente para cards)
-  const cldUrl = (publicId: string, w = 800) =>
-    `https://res.cloudinary.com/${cloud}/image/upload/f_auto,q_auto:good,w_${w}/${publicId}`;
 
   type EventoRow = {
     id: string;
     nombre: string;
     slug: string;
     cover_public_id?: string | null;
-    fotos?: { id: string; public_id: string; precio: number }[];
-    sub_eventos?: { id: string; nombre: string; slug: string; fotos?: { id: string; public_id: string; precio: number }[] }[];
+    cover_storage_provider?: string | null;
+    fotos?: { id: string; public_id: string; precio: number; storage_provider?: string | null }[];
+    sub_eventos?: { id: string; nombre: string; slug: string; fotos?: { id: string; public_id: string; precio: number; storage_provider?: string | null }[] }[];
   };
 
   const eventosRecientes = (eventosRaw as EventoRow[]).map((ev) => {
@@ -75,7 +71,13 @@ export default async function HomePage() {
       ev.cover_public_id ??
       (tieneSubEventos ? ev.sub_eventos?.[0]?.fotos?.[0]?.public_id : ev.fotos?.[0]?.public_id) ??
       null;
-    const coverUrl = portadaPublicId ? cldUrl(portadaPublicId, 800) : IMG_LAGOS_LANDSCAPE;
+    const portadaStorage =
+      ev.cover_storage_provider ??
+      (tieneSubEventos ? ev.sub_eventos?.[0]?.fotos?.[0]?.storage_provider : ev.fotos?.[0]?.storage_provider) ??
+      null;
+    const coverUrl = portadaPublicId
+      ? `/api/watermark?public_id=${encodeURIComponent(portadaPublicId)}&w=800&v=2${portadaStorage === "cloudflare" ? "&storage=cloudflare" : portadaStorage === "supabase" ? "&storage=supabase" : ""}`
+      : IMG_LAGOS_LANDSCAPE;
     return { nombre: ev.nombre, slug: ev.slug, coverUrl, totalFotos };
   });
 

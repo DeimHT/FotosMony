@@ -9,6 +9,8 @@ export type CartItem = {
   subEventSlug?: string;
   /** Nombre original del archivo (ej. DSC_9577.JPG) para mostrar en WhatsApp */
   nombreArchivo?: string;
+  /** Origen de la imagen: cloudflare = R2; supabase = Storage; si no, Cloudinary */
+  storageProvider?: "cloudinary" | "supabase" | "cloudflare";
 };
 
 export const CART_STORAGE_KEY = "fotosmony_cart";

@@ -3,13 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { cldUrlWithWatermark } from "FotosMony/lib/cloudinaryUrl";
+import { watermarkUrl } from "FotosMony/lib/cloudinaryUrl";
 import { supabase } from "FotosMony/lib/supabaseClient";
 
 type Foto = {
   id: string;
   public_id: string;
   precio: number;
+  storage_provider?: string | null;
 };
 
 type SubEventoDB = {
@@ -24,7 +25,8 @@ type EventoDB = {
   nombre: string;
   slug: string;
   cover_public_id?: string | null;
-  fotos?: Foto[]; // fotos directas si no hay subeventos
+  cover_storage_provider?: string | null;
+  fotos?: Foto[];
   sub_eventos?: SubEventoDB[];
 };
 
@@ -34,6 +36,7 @@ type EventoUI = {
   nombre: string;
   slug: string;
   cover_public_id?: string | null;
+  cover_storage_provider?: string | null;
   fotos?: Foto[];
   subEventos?: { id: string; nombre: string; slug: string; fotos: Foto[] }[];
 };
@@ -57,12 +60,13 @@ export default function EventosPage() {
           nombre,
           slug,
           cover_public_id,
-          fotos ( id, public_id, precio, nombre_archivo ),
+          cover_storage_provider,
+          fotos ( id, public_id, precio, nombre_archivo, storage_provider ),
           sub_eventos (
             id,
             nombre,
             slug,
-            fotos ( id, public_id, precio, nombre_archivo )
+            fotos ( id, public_id, precio, nombre_archivo, storage_provider )
           )
         `)
         .order("created_at", { ascending: false });
@@ -84,6 +88,7 @@ export default function EventosPage() {
         nombre: ev.nombre,
         slug: ev.slug,
         cover_public_id: ev.cover_public_id ?? null,
+        cover_storage_provider: ev.cover_storage_provider ?? null,
         fotos: ev.fotos ?? [],
         subEventos: (ev.sub_eventos ?? []).map((s) => ({
           id: s.id,
@@ -150,10 +155,15 @@ export default function EventosPage() {
               ? evento.subEventos?.[0]?.fotos?.[0]?.public_id
               : evento.fotos?.[0]?.public_id) ??
             null;
+          const portadaStorage =
+            evento.cover_storage_provider ??
+            (tieneSubEventos
+              ? evento.subEventos?.[0]?.fotos?.[0]?.storage_provider
+              : evento.fotos?.[0]?.storage_provider) ??
+            null;
 
-          // Reducir tamaño a 600px para cards (ahorra mucho ancho de banda)
           const coverUrl = portadaPublicId
-            ? cldUrlWithWatermark(portadaPublicId, 600, 'auto:eco')
+            ? watermarkUrl(portadaPublicId, 600, portadaStorage === "cloudflare" || portadaStorage === "supabase" ? portadaStorage : "cloudinary")
             : `https://picsum.photos/seed/${evento.slug}/600/400`;
 
           return (

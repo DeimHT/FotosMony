@@ -12,6 +12,7 @@ type Foto = {
   public_id: string;
   precio: number;
   nombre_archivo?: string | null;
+  storage_provider?: string | null;
 };
 
 type SubEvento = {
@@ -29,7 +30,7 @@ type Evento = {
   sub_eventos?: SubEvento[];
 };
 
-import { cldUrlWithWatermark } from "FotosMony/lib/cloudinaryUrl";
+import { watermarkUrl } from "FotosMony/lib/cloudinaryUrl";
 import { GalleryPagination } from "FotosMony/components/ui/GalleryPagination";
 
 const PAGE_SIZE = 24;
@@ -64,12 +65,12 @@ export default function EventoPage() {
           id,
           nombre,
           slug,
-          fotos ( id, public_id, precio, nombre_archivo ),
+          fotos ( id, public_id, precio, nombre_archivo, storage_provider ),
           sub_eventos (
             id,
             nombre,
             slug,
-            fotos ( id, public_id, precio, nombre_archivo )
+            fotos ( id, public_id, precio, nombre_archivo, storage_provider )
           )
         `
         )
@@ -230,6 +231,7 @@ export default function EventoPage() {
         publicId: f.public_id,
         precio: f.precio,
         eventoNombre: evento.nombre,
+        storageProvider: f.storage_provider === "cloudflare" ? "cloudflare" : f.storage_provider === "supabase" ? "supabase" : "cloudinary",
         eventSlug: evento.slug,
         nombreArchivo: f.nombre_archivo ?? undefined,
       }));
@@ -263,7 +265,7 @@ export default function EventoPage() {
               }`}
             >
               <img
-                src={cldUrlWithWatermark(foto.public_id, 600, 'auto:eco')}
+                src={watermarkUrl(foto.public_id, 600, foto.storage_provider === "cloudflare" || foto.storage_provider === "supabase" ? foto.storage_provider : "cloudinary")}
                 alt="Preview"
                 className="block w-full h-auto"
                 loading="lazy"

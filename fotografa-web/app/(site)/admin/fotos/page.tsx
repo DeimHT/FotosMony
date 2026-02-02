@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "FotosMony/lib/supabaseClient";
 import { useRouter } from "next/navigation";
-import { cldUrl } from "FotosMony/lib/cloudinaryUrl";
+import { cldUrl, watermarkUrl } from "FotosMony/lib/cloudinaryUrl";
 import { AdminHelpBox } from "FotosMony/components/ui/AdminHelpBox";
 import { GalleryPagination } from "FotosMony/components/ui/GalleryPagination";
 
@@ -19,6 +19,7 @@ type Foto = {
   nombre_archivo: string | null;
   evento_id: string | null;
   sub_evento_id: string | null;
+  storage_provider?: string | null;
 };
 
 type UploadRow = {
@@ -260,7 +261,11 @@ export default function AdminFotosPage() {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ id: eventoId, cover_public_id: foto.public_id }),
+        body: JSON.stringify({
+          id: eventoId,
+          cover_public_id: foto.public_id,
+          cover_storage_provider: foto.storage_provider === "supabase" ? "supabase" : null,
+        }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -564,7 +569,7 @@ export default function AdminFotosPage() {
                 className="group relative overflow-hidden rounded-xl border bg-slate-50"
               >
                 <img
-                  src={cldUrl(foto.public_id, 400)}
+                  src={foto.storage_provider === "cloudflare" ? watermarkUrl(foto.public_id, 400, "cloudflare") : foto.storage_provider === "supabase" ? watermarkUrl(foto.public_id, 400, "supabase") : cldUrl(foto.public_id, 400)}
                   alt={foto.nombre_archivo ?? foto.public_id}
                   className="block w-full aspect-square object-cover"
                 />
