@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { ImageProtectionWrapper } from "FotosMony/components/ui/ImageProtectionWrapper";
 import { watermarkUrl } from "FotosMony/lib/cloudinaryUrl";
 import { supabase } from "FotosMony/lib/supabaseClient";
 
@@ -172,7 +173,7 @@ export default function EventosPage() {
               className="overflow-hidden rounded-2xl border bg-white shadow-sm"
             >
               {/* Imagen superior */}
-              <div className="relative aspect-[16/10] w-full">
+              <ImageProtectionWrapper className="relative aspect-[16/10] w-full">
                 <Image
                   src={coverUrl}
                   alt={`Portada ${evento.nombre}`}
@@ -180,8 +181,9 @@ export default function EventosPage() {
                   className="object-cover"
                   loading="lazy"
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  draggable={false}
                 />
-              </div>
+              </ImageProtectionWrapper>
 
               {/* Contenido */}
               <div className="p-5">

@@ -80,7 +80,7 @@ export default function SubEventoPage() {
           id,
           nombre,
           slug,
-          fotos ( id, public_id, precio, nombre_archivo )
+          fotos ( id, public_id, precio, nombre_archivo, storage_provider )
         `
         )
         .eq("slug", subEventSlug)
@@ -206,7 +206,9 @@ export default function SubEventoPage() {
             <div
               key={foto.id}
               onClick={() => togglePhoto(foto.id)}
-              className={`mb-4 break-inside-avoid cursor-pointer overflow-hidden rounded-xl border-4 shadow-md shadow-black/10 transition hover:shadow-xl ${
+              onContextMenu={(e) => e.preventDefault()}
+              onDragStart={(e) => e.preventDefault()}
+              className={`select-none mb-4 break-inside-avoid cursor-pointer overflow-hidden rounded-xl border-4 shadow-md shadow-black/10 transition hover:shadow-xl ${
                 selected.includes(foto.id)
                   ? "border-blue-500"
                   : "border-transparent"
@@ -215,8 +217,9 @@ export default function SubEventoPage() {
               <img
                 src={watermarkUrl(foto.public_id, 600, foto.storage_provider === "cloudflare" || foto.storage_provider === "supabase" ? foto.storage_provider : "cloudinary")}
                 alt="Preview"
-                className="block w-full h-auto"
+                className="block w-full h-auto pointer-events-none"
                 loading="lazy"
+                draggable={false}
               />
 
               {selected.includes(foto.id) && (

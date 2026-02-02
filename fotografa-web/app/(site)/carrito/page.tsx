@@ -28,11 +28,16 @@ function CartRow({
 }) {
   return (
     <div className="flex gap-4 rounded-xl border bg-white p-4">
-      <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg border bg-slate-100">
+      <div
+        className="h-20 w-20 shrink-0 select-none overflow-hidden rounded-lg border bg-slate-100"
+        onContextMenu={(e) => e.preventDefault()}
+        onDragStart={(e) => e.preventDefault()}
+      >
         <img
           src={watermarkUrl(item.publicId, 200, item.storageProvider)}
           alt=""
-          className="h-full w-full object-cover"
+          className="h-full w-full object-cover pointer-events-none"
+          draggable={false}
         />
       </div>
       <div className="min-w-0 flex-1">
