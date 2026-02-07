@@ -30,6 +30,7 @@ type Evento = {
 
 import { watermarkUrl } from "FotosMony/lib/cloudinaryUrl";
 import { GalleryPagination } from "FotosMony/components/ui/GalleryPagination";
+import { GalleryLightbox } from "FotosMony/components/ui/GalleryLightbox";
 
 const PAGE_SIZE = 24;
 
@@ -46,6 +47,7 @@ export default function SubEventoPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [page, setPage] = useState(1);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   // cargar evento + subevento desde DB
   useEffect(() => {
@@ -202,25 +204,45 @@ export default function SubEventoPage() {
       ) : (
         <>
         <div className="columns-2 gap-4 md:columns-4">
-          {paginatedFotos.map((foto) => (
+          {paginatedFotos.map((foto) => {
+            const storage = foto.storage_provider === "cloudflare" || foto.storage_provider === "supabase" ? foto.storage_provider : "cloudinary";
+            return (
             <div
               key={foto.id}
               onClick={() => togglePhoto(foto.id)}
               onContextMenu={(e) => e.preventDefault()}
               onDragStart={(e) => e.preventDefault()}
-              className={`select-none mb-4 break-inside-avoid cursor-pointer overflow-hidden rounded-xl border-4 shadow-md shadow-black/10 transition hover:shadow-xl ${
+              className={`group select-none relative mb-4 break-inside-avoid cursor-pointer overflow-hidden rounded-xl border-4 shadow-md shadow-black/10 transition-all duration-200 hover:scale-[1.02] hover:shadow-xl hover:shadow-black/20 ${
                 selected.includes(foto.id)
                   ? "border-blue-500"
                   : "border-transparent"
               }`}
             >
               <img
-                src={watermarkUrl(foto.public_id, 600, foto.storage_provider === "cloudflare" || foto.storage_provider === "supabase" ? foto.storage_provider : "cloudinary")}
+                src={watermarkUrl(foto.public_id, 600, storage)}
                 alt="Preview"
                 className="block w-full h-auto pointer-events-none"
                 loading="lazy"
                 draggable={false}
               />
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightboxSrc(watermarkUrl(foto.public_id, 1200, storage));
+                }}
+                className="absolute right-2 bottom-2 rounded-full bg-white/95 p-1.5 text-slate-700 shadow-md opacity-0 transition-opacity duration-200 group-hover:opacity-100 hover:bg-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-1 focus:ring-offset-slate-200"
+                title="Ver más grande"
+                aria-label="Ver más grande"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                  <path d="M11 8v6" />
+                  <path d="M8 11h6" />
+                </svg>
+              </button>
 
               {selected.includes(foto.id) && (
                 <div className="absolute right-2 top-2 rounded-full bg-blue-500 px-2 py-1 text-xs font-semibold text-white">
@@ -228,7 +250,8 @@ export default function SubEventoPage() {
                 </div>
               )}
             </div>
-          ))}
+          );
+          })}
         </div>
 
         {totalPages > 1 && (
@@ -246,6 +269,14 @@ export default function SubEventoPage() {
           </div>
         )}
         </>
+      )}
+
+      {lightboxSrc && (
+        <GalleryLightbox
+          src={lightboxSrc}
+          alt="Vista ampliada"
+          onClose={() => setLightboxSrc(null)}
+        />
       )}
 
       {/* Botón carrito */}
