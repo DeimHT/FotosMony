@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
   const retornoSinCompletar = !!tbkToken || !!tbkIdSesion || !!tbkOrdenCompra;
   let redirect: string;
   if (tieneTokenExito) {
-    redirect = `${baseUrl}/carrito/confirmar?token_ws=${encodeURIComponent(tokenWs)}`;
+    redirect = `${baseUrl}/carrito/confirmar?token_ws=${encodeURIComponent(tokenWs ?? "")}`;
   } else if (retornoSinCompletar) {
     redirect = `${baseUrl}/carrito/confirmar?cancelado=1`;
   } else {
