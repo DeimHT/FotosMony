@@ -10,6 +10,7 @@ export type HeroContent = {
   cta_secondary_text: string;
   image_url: string | null;
   image_public_id: string | null;
+  badge_visible: boolean;
   badge_title: string;
   badge_subtitle: string;
 };
@@ -20,6 +21,7 @@ export type StatItem = { value: string; label: string };
 export type AboutContent = {
   image_url: string | null;
   image_public_id: string | null;
+  card_visible: boolean;
   card_title: string;
   card_text: string;
   section_title: string;
@@ -36,6 +38,7 @@ export const DEFAULT_HERO: HeroContent = {
   cta_secondary_text: "Contactar Ahora",
   image_url: null,
   image_public_id: null,
+  badge_visible: true,
   badge_title: "+500 Sesiones",
   badge_subtitle: "Realizadas con éxito",
 };
@@ -43,6 +46,7 @@ export const DEFAULT_HERO: HeroContent = {
 export const DEFAULT_ABOUT: AboutContent = {
   image_url: null,
   image_public_id: null,
+  card_visible: true,
   card_title: "Ubicación Privilegiada",
   card_text:
     "Operamos en toda la hermosa región de los lagos, aprovechando paisajes naturales únicos como telón de fondo.",
@@ -104,6 +108,7 @@ export function mergeHero(partial: unknown): HeroContent {
       p.image_public_id === null || typeof p.image_public_id === "string"
         ? p.image_public_id
         : d.image_public_id,
+    badge_visible: typeof p.badge_visible === "boolean" ? p.badge_visible : d.badge_visible,
     badge_title: typeof p.badge_title === "string" ? p.badge_title : d.badge_title,
     badge_subtitle: typeof p.badge_subtitle === "string" ? p.badge_subtitle : d.badge_subtitle,
   };
@@ -137,6 +142,7 @@ export function mergeAbout(partial: unknown): AboutContent {
       p.image_public_id === null || typeof p.image_public_id === "string"
         ? p.image_public_id
         : d.image_public_id,
+    card_visible: typeof p.card_visible === "boolean" ? p.card_visible : d.card_visible,
     card_title: typeof p.card_title === "string" ? p.card_title : d.card_title,
     card_text: typeof p.card_text === "string" ? p.card_text : d.card_text,
     section_title: typeof p.section_title === "string" ? p.section_title : d.section_title,

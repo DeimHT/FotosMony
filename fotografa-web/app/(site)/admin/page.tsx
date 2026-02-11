@@ -297,11 +297,6 @@ export default function AdminDashboardPage() {
 
       <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
         <AdminLinkCard
-          title="Editar inicio"
-          desc="Textos e imágenes del hero y Sobre FotosMony."
-          href="/admin/inicio"
-        />
-        <AdminLinkCard
           title="Eventos y Subeventos"
           desc="Crea y administra eventos y subeventos."
           href="/admin/eventos"

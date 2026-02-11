@@ -194,6 +194,15 @@ export default function AdminInicioPage() {
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900"
               />
             </label>
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={hero.badge_visible !== false}
+                onChange={(e) => setHero({ ...hero, badge_visible: e.target.checked })}
+                className="h-4 w-4 rounded border-slate-300 text-slate-900"
+              />
+              <span className="text-sm font-medium text-slate-700">Mostrar badge en la imagen</span>
+            </label>
             <label className="block">
               <span className="text-sm font-medium text-slate-700">Badge: título</span>
               <input
@@ -293,7 +302,16 @@ export default function AdminInicioPage() {
               />
               {uploadingAbout && <p className="text-xs text-slate-500">Subiendo...</p>}
             </div>
-            <label className="mt-4 block">
+            <label className="mt-4 flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={about.card_visible !== false}
+                onChange={(e) => setAbout({ ...about, card_visible: e.target.checked })}
+                className="h-4 w-4 rounded border-slate-300 text-slate-900"
+              />
+              <span className="text-sm font-medium text-slate-700">Mostrar card sobre la imagen</span>
+            </label>
+            <label className="mt-2 block">
               <span className="text-sm font-medium text-slate-700">Título del card flotante</span>
               <input
                 type="text"

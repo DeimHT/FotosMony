@@ -37,16 +37,29 @@ export async function GET(req: Request) {
   const auth = await requireAdmin(req);
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
-  const { data: rows, error } = await auth.supabaseAdmin
-    .from("home_sections")
-    .select("id, content")
-    .in("id", ["hero", "about"]);
+  let hero: ReturnType<typeof mergeHeroLib>;
+  let about: ReturnType<typeof mergeAboutLib>;
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  try {
+    const { data: rows, error } = await auth.supabaseAdmin
+      .from("home_sections")
+      .select("id, content")
+      .in("id", ["hero", "about"]);
 
-  const byId = new Map((rows ?? []).map((r) => [r.id, r.content]));
-  const hero = mergeHeroLib(byId.get("hero"));
-  const about = mergeAboutLib(byId.get("about"));
+    // Ante cualquier error (tabla no existe, RLS, etc.) devolvemos contenido por defecto para que el admin vea el botón Editar
+    if (error) {
+      hero = mergeHeroLib(undefined);
+      about = mergeAboutLib(undefined);
+    } else {
+      const safeRows = Array.isArray(rows) ? rows : [];
+      const byId = new Map(safeRows.map((r: { id: string; content: unknown }) => [r.id, r.content]));
+      hero = mergeHeroLib(byId.get("hero"));
+      about = mergeAboutLib(byId.get("about"));
+    }
+  } catch {
+    hero = mergeHeroLib(undefined);
+    about = mergeAboutLib(undefined);
+  }
 
   return NextResponse.json({ hero, about });
 }

@@ -1,8 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import { EventosRecientes } from "FotosMony/components/ui/EventosRecientes";
 import { CTAFinal } from "FotosMony/components/ui/CTAFinal";
+import { EditableHomeSections } from "FotosMony/components/ui/EditableHomeSections";
 import {
   mergeHero,
   mergeAbout,
@@ -38,11 +38,13 @@ export default async function HomePage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  const { data: homeRows = [] } = await supabase
+  const { data: homeRows } = await supabase
     .from("home_sections")
     .select("id, content")
     .in("id", ["hero", "about"]);
-  const homeById = new Map((homeRows as { id: string; content: unknown }[]).map((r) => [r.id, r.content]));
+  const homeById = new Map(
+    ((homeRows ?? []) as { id: string; content: unknown }[]).map((r) => [r.id, r.content])
+  );
   const heroContent = mergeHero(homeById.get("hero"));
   const aboutContent = mergeAbout(homeById.get("about"));
   const heroImgSrc = heroImageUrl(heroContent, R2_PUBLIC || undefined);
@@ -117,76 +119,13 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      {/* HERO */}
-      <section className="mx-auto max-w-7xl px-4 py-16">
-        <div className="grid items-center gap-12 lg:grid-cols-2">
-          
-          {/* Texto */}
-          <div>
-            <h1 className="text-4xl font-semibold leading-tight text-slate-900 md:text-5xl">
-              {heroContent.title.split("\n").map((line, i) => (
-                <span key={i}>
-                  {line}
-                  {i < heroContent.title.split("\n").length - 1 && <br />}
-                </span>
-              ))}
-            </h1>
-
-            <p className="mt-6 max-w-xl text-base text-slate-600">
-              {heroContent.subtitle}
-            </p>
-
-            <div className="mt-8 flex flex-wrap gap-4">
-              <Link
-                href="/servicios"
-                className="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-800 transition"
-              >
-                {heroContent.cta_primary_text}
-              </Link>
-
-              <Link
-                href="/contacto"
-                className="rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-50 transition"
-              >
-                {heroContent.cta_secondary_text}
-              </Link>
-            </div>
-          </div>
-
-          {/* Imagen */}
-          <div className="relative">
-            <div className="relative overflow-hidden rounded-3xl shadow-xl">
-              <Image
-                src={heroImgSrc}
-                alt="Paisaje Región de los Lagos, Chile — sesión fotográfica"
-                width={900}
-                height={1100}
-                className="h-full w-full object-cover"
-                priority
-                loading="eager"
-              />
-            </div>
-
-            {/* Badge flotante */}
-            <div className="absolute -bottom-6 left-6 rounded-2xl bg-white px-5 py-4 shadow-lg">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100">
-                  📷
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">
-                    {heroContent.badge_title}
-                  </p>
-                  <p className="text-xs text-slate-600">
-                    {heroContent.badge_subtitle}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </section>
+      <EditableHomeSections
+        initialHero={heroContent}
+        initialAbout={aboutContent}
+        heroImgSrc={heroImgSrc}
+        aboutImgSrc={aboutImgSrc}
+        r2PublicUrl={R2_PUBLIC}
+      />
 
       {/* SERVICIOS DESTACADOS */}
       {serviciosDestacados && serviciosDestacados.length > 0 && (
@@ -236,75 +175,6 @@ export default async function HomePage() {
           </div>
         </section>
       )}
-
-      {/* Sobre Nosotros */}
-      <section className="mx-auto max-w-7xl px-4 py-20">
-        <div className="grid items-center gap-12 lg:grid-cols-2">
-          
-          {/* Imagen */}
-          <div className="relative">
-            <div className="relative overflow-hidden rounded-3xl shadow-xl">
-              <img
-                src={aboutImgSrc}
-                alt="Paisajes Región de los Lagos, Chile"
-                className="h-full w-full object-cover"
-                loading="lazy"
-              />
-            </div>
-
-            {/* Card flotante */}
-            <div className="absolute -bottom-6 left-6 max-w-xs rounded-2xl bg-white px-5 py-4 shadow-lg">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100">
-                  📍
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">
-                    {aboutContent.card_title}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-600">
-                    {aboutContent.card_text}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Texto */}
-          <div>
-            <h2 className="text-3xl font-semibold text-slate-900">
-              {aboutContent.section_title}
-            </h2>
-
-            <p className="mt-4 text-slate-600">
-              {aboutContent.intro}
-            </p>
-
-            <ul className="mt-6 space-y-4">
-              {aboutContent.bullets.map((b, i) => (
-                <li key={i} className="flex items-start gap-3">
-                  <span className="mt-1 h-2 w-2 rounded-full bg-slate-900" />
-                  <div>
-                    <p className="font-semibold text-slate-900">{b.title}</p>
-                    <p className="text-sm text-slate-600">{b.description}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-
-            {/* Métricas */}
-            <div className="mt-10 grid grid-cols-2 gap-6 sm:grid-cols-4">
-              {aboutContent.stats.map((s, i) => (
-                <div key={i}>
-                  <p className="text-2xl font-semibold text-slate-900">{s.value}</p>
-                  <p className="text-sm text-slate-600">{s.label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-        </div>
-      </section>
 
       {/* Eventos Recientes */}
       <EventosRecientes eventos={eventosRecientes} />
