@@ -16,6 +16,8 @@ const navItems = [
   { label: "Fotos", href: "/admin/fotos" },
   { label: "Portafolio", href: "/admin/portafolio" },
   { label: "Clientes", href: "/admin/clientes" },
+  { label: "Mensajes", href: "/admin/mensajes" },
+  { label: "Configuración", href: "/admin/configuracion" },
 ];
 
 export default function Header() {
@@ -101,21 +103,21 @@ export default function Header() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setOpen(false);
-    router.push("/");
+    window.location.href = "/";
   };
 
   const activeHref = useMemo(() => {
     const match = navItems.find((i) =>
-      i.href === "/" ? pathname === "/" : pathname.startsWith(i.href)
+      i.href === "/admin" ? pathname === "/admin" : pathname.startsWith(i.href)
     );
     return match?.href ?? "";
   }, [pathname]);
 
   return (
     <header className="w-full border-b bg-white">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
+      <div className="mx-auto flex min-h-16 max-w-6xl items-center justify-between gap-6 px-6 py-3 md:px-8">
         {/* Left: logo + brand */}
-        <Link href="/" className="flex items-center gap-3">
+        <Link href="/" className="flex shrink-0 items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path
@@ -136,7 +138,7 @@ export default function Header() {
         </Link>
 
         {/* Center: nav (desktop) */}
-        <nav className="hidden items-center gap-8 md:flex">
+        <nav className="hidden items-center gap-7 md:flex">
           {navItems.map((item) => {
             const isActive = activeHref === item.href;
             return (
@@ -155,9 +157,9 @@ export default function Header() {
         </nav>
 
         {/* Right: Auth buttons + mobile toggle */}
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-4">
           {/* Desktop auth area */}
-          <div className="hidden items-center gap-2 md:flex">
+          <div className="hidden items-center gap-4 md:flex">
             {loadingAuth ? null : email ? (
               <>
                 <span className="text-sm text-slate-700">
@@ -166,10 +168,10 @@ export default function Header() {
 
                 {isAdmin && (
                   <Link
-                    href="/admin"
+                    href="/"
                     className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
                   >
-                    Panel Admin
+                    Volver a inicio
                   </Link>
                 )}
 
@@ -222,7 +224,7 @@ export default function Header() {
       {/* Mobile menu */}
       {open && (
         <div className="border-t bg-white md:hidden">
-          <div className="mx-auto max-w-6xl px-4 py-3">
+          <div className="mx-auto max-w-6xl px-6 py-4">
             <div className="flex flex-col gap-2">
               {navItems.map((item) => {
                 const isActive = activeHref === item.href;
@@ -242,7 +244,7 @@ export default function Header() {
               })}
 
               {/* Mobile auth area */}
-              <div className="mt-2 flex flex-col gap-2">
+              <div className="mt-4 flex flex-col gap-3">
                 {loadingAuth ? null : email ? (
                   <>
                     <div className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
@@ -250,11 +252,11 @@ export default function Header() {
                     </div>
                     {isAdmin && (
                       <Link
-                        href="/admin"
+                        href="/"
                         onClick={() => setOpen(false)}
                         className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
                       >
-                        Panel Admin
+                        Volver a inicio
                       </Link>
                     )}
                     <button
