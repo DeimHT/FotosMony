@@ -10,12 +10,19 @@ function ConfirmarContent() {
   const { clearCart } = useCart();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [canceladoPorUsuario, setCanceladoPorUsuario] = useState(false);
 
   useEffect(() => {
     const tokenWs = searchParams.get("token_ws");
+    const cancelado = searchParams.get("cancelado") === "1";
     if (!tokenWs) {
       setStatus("error");
-      setErrorMsg("No se recibió el token de Webpay.");
+      setCanceladoPorUsuario(cancelado);
+      setErrorMsg(
+        cancelado
+          ? "Decidiste no completar el pago. Tu carrito sigue disponible para cuando quieras."
+          : "No se recibió el token de Webpay."
+      );
       return;
     }
 
@@ -78,8 +85,22 @@ function ConfirmarContent() {
   }
 
   return (
-    <div className="rounded-2xl border border-red-200 bg-red-50/50 p-8 text-center">
-      <h2 className="text-xl font-semibold text-red-900">Pago no completado</h2>
+    <div
+      className={
+        canceladoPorUsuario
+          ? "rounded-2xl border border-amber-200 bg-amber-50/50 p-8 text-center"
+          : "rounded-2xl border border-red-200 bg-red-50/50 p-8 text-center"
+      }
+    >
+      <h2
+        className={
+          canceladoPorUsuario
+            ? "text-xl font-semibold text-amber-900"
+            : "text-xl font-semibold text-red-900"
+        }
+      >
+        {canceladoPorUsuario ? "Pago cancelado" : "Pago no completado"}
+      </h2>
       <p className="mt-2 text-slate-700">{errorMsg}</p>
       <Link
         href="/carrito"
