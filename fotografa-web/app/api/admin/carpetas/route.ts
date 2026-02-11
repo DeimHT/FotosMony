@@ -1,8 +1,28 @@
+import { NextResponse } from "next/server";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { randomUUID } from "crypto";
 import { supabaseAdmin } from "FotosMony/lib/supabaseAdmin";
 import { requireAdmin } from "FotosMony/lib/requireAdmin";
-import { NextResponse } from "next/server";
-import cloudinary from "FotosMony/lib/cloudinary";
-import type { UploadApiResponse } from "cloudinary";
+
+const R2_ACCOUNT_ID = process.env.CLOUDFLARE_R2_ACCOUNT_ID;
+const R2_ACCESS_KEY = process.env.CLOUDFLARE_R2_ACCESS_KEY_ID;
+const R2_SECRET = process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY;
+const R2_BUCKET = process.env.CLOUDFLARE_R2_BUCKET_NAME;
+
+function getR2Client(): S3Client | null {
+  if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY || !R2_SECRET) return null;
+  return new S3Client({
+    region: "auto",
+    endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: { accessKeyId: R2_ACCESS_KEY, secretAccessKey: R2_SECRET },
+    forcePathStyle: true,
+  });
+}
+
+function getExt(name: string): string {
+  const m = name.match(/\.(jpe?g|png|webp|gif)$/i);
+  return m ? m[1].toLowerCase().replace("jpeg", "jpg") : "jpg";
+}
 
 export async function POST(req: Request) {
   const gate = await requireAdmin(req);
@@ -10,7 +30,6 @@ export async function POST(req: Request) {
 
   const contentType = req.headers.get("content-type") ?? "";
 
-  // FormData: nombre + descripcion + múltiples archivos → subir a Cloudinary uno a uno y crear carpeta
   if (contentType.includes("multipart/form-data")) {
     const formData = await req.formData();
     const nombre = (formData.get("nombre") as string | null)?.trim();
@@ -24,29 +43,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Sube al menos una foto" }, { status: 400 });
     }
 
-    const publicIds: string[] = [];
+    const r2 = getR2Client();
+    if (!r2 || !R2_BUCKET) {
+      return NextResponse.json({ error: "Configuración de Cloudflare R2 faltante" }, { status: 500 });
+    }
 
     try {
-      // Subir a Cloudinary de una en una
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const buffer = Buffer.from(await file.arrayBuffer());
-        const result = await new Promise<UploadApiResponse>((resolve, reject) => {
-          cloudinary.uploader
-            .upload_stream(
-              { folder: "portafolio", resource_type: "image" },
-              (err, res) => {
-                if (err) return reject(err);
-                if (!res) return reject(new Error("Cloudinary: sin resultado"));
-                resolve(res);
-              }
-            )
-            .end(buffer);
-        });
-        publicIds.push(result.public_id);
-      }
-
-      // Crear carpeta en BD
       const { data: carpeta, error: carpetaError } = await supabaseAdmin
         .from("carpetas")
         .insert([{ nombre, descripcion }])
@@ -57,11 +59,22 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: carpetaError.message }, { status: 500 });
       }
 
-      // Insertar fotos en BD (carpeta_id + public_id; precio 0 para portafolio)
-      for (const publicId of publicIds) {
+      for (const file of files) {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const ext = getExt(file.name || "image.jpg");
+        const key = `carpetas/${carpeta.id}/${randomUUID()}.${ext}`;
+        const contentTypeImg = file.type || (ext === "png" ? "image/png" : "image/jpeg");
+        await r2.send(
+          new PutObjectCommand({
+            Bucket: R2_BUCKET,
+            Key: key,
+            Body: buffer,
+            ContentType: contentTypeImg,
+          })
+        );
         const { error: fotoErr } = await supabaseAdmin
           .from("fotos")
-          .insert([{ public_id: publicId, carpeta_id: carpeta.id, precio: 0 }]);
+          .insert([{ public_id: key, carpeta_id: carpeta.id, precio: 0, storage_provider: "cloudflare" }]);
         if (fotoErr) {
           return NextResponse.json({ error: fotoErr.message }, { status: 500 });
         }
@@ -98,7 +111,14 @@ export async function POST(req: Request) {
   for (const publicId of fotos as string[]) {
     const { error } = await supabaseAdmin
       .from("fotos")
-      .insert([{ public_id: publicId, carpeta_id: carpeta.id, precio: 0 }]);
+      .insert([
+        {
+          public_id: publicId,
+          carpeta_id: carpeta.id,
+          precio: 0,
+          storage_provider: String(publicId).startsWith("carpetas/") ? "cloudflare" : "cloudinary",
+        },
+      ]);
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }

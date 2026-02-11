@@ -1,12 +1,28 @@
 import { NextResponse } from "next/server";
-import { v2 as cloudinary } from "cloudinary";
 import { createClient } from "@supabase/supabase-js";
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { randomUUID } from "crypto";
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME!,
-  api_key: process.env.CLOUDINARY_API_KEY!,
-  api_secret: process.env.CLOUDINARY_API_SECRET!,
-});
+const R2_ACCOUNT_ID = process.env.CLOUDFLARE_R2_ACCOUNT_ID;
+const R2_ACCESS_KEY = process.env.CLOUDFLARE_R2_ACCESS_KEY_ID;
+const R2_SECRET = process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY;
+const R2_BUCKET = process.env.CLOUDFLARE_R2_BUCKET_NAME;
+const R2_PUBLIC_URL = (process.env.CLOUDFLARE_R2_PUBLIC_URL ?? "").replace(/\/$/, "");
+
+function getR2Client(): S3Client | null {
+  if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY || !R2_SECRET) return null;
+  return new S3Client({
+    region: "auto",
+    endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: { accessKeyId: R2_ACCESS_KEY, secretAccessKey: R2_SECRET },
+    forcePathStyle: true,
+  });
+}
+
+function getExt(name: string): string {
+  const m = name.match(/\.(jpe?g|png|webp|gif)$/i);
+  return m ? m[1].toLowerCase().replace("jpeg", "jpg") : "jpg";
+}
 
 function getBearerToken(req: Request) {
   const h = req.headers.get("authorization") || "";
@@ -44,44 +60,52 @@ export async function POST(req: Request) {
   const auth = await requireAdmin(req);
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
+  const r2 = getR2Client();
+  if (!r2 || !R2_BUCKET) {
+    return NextResponse.json(
+      { error: "Configuración de Cloudflare R2 faltante" },
+      { status: 500 }
+    );
+  }
+
   const form = await req.formData();
   const file = form.get("file");
-  const oldPublicId = form.get("old_public_id")?.toString() || "";
+  const oldPublicId = (form.get("old_public_id")?.toString() || "").trim();
 
   if (!file || !(file instanceof File)) {
     return NextResponse.json({ error: "Archivo no encontrado (field: file)" }, { status: 400 });
   }
 
-  // convertir File -> Buffer
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const ext = getExt(file.name || "image.jpg");
+  const key = `services/${randomUUID()}.${ext}`;
+  const contentType = file.type || (ext === "png" ? "image/png" : "image/jpeg");
 
-  // subir a cloudinary
-  const uploaded = await new Promise<any>((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      {
-        folder: "services",
-        resource_type: "image",
-      },
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result);
-      }
+  try {
+    await r2.send(
+      new PutObjectCommand({
+        Bucket: R2_BUCKET,
+        Key: key,
+        Body: buffer,
+        ContentType: contentType,
+      })
     );
-    stream.end(buffer);
-  });
+  } catch (e) {
+    console.error("R2 upload services", e);
+    return NextResponse.json({ error: "Error subiendo imagen a R2" }, { status: 500 });
+  }
 
-  // si viene old_public_id, borrar anterior (reemplazo)
-  if (oldPublicId) {
+  if (oldPublicId && oldPublicId.startsWith("services/")) {
     try {
-      await cloudinary.uploader.destroy(oldPublicId, { resource_type: "image" });
+      await r2.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: oldPublicId }));
     } catch {
-      // no bloqueamos el flujo si falla el destroy
+      // no bloqueamos si falla el borrado
     }
   }
 
+  const imageUrl = R2_PUBLIC_URL ? `${R2_PUBLIC_URL}/${key}` : "";
   return NextResponse.json({
-    image_url: uploaded.secure_url,
-    image_public_id: uploaded.public_id,
+    image_url: imageUrl,
+    image_public_id: key,
   });
 }

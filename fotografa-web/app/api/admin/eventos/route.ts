@@ -115,16 +115,18 @@ export async function DELETE(req: Request) {
 
   const { data: fotosEvento } = await supabaseAdmin
     .from("fotos")
-    .select("id, public_id")
+    .select("id, public_id, storage_provider")
     .eq("evento_id", id);
   const { data: fotosSub } =
     subIds.length > 0
-      ? await supabaseAdmin.from("fotos").select("id, public_id").in("sub_evento_id", subIds)
-      : { data: [] as { id: string; public_id: string }[] };
+      ? await supabaseAdmin.from("fotos").select("id, public_id, storage_provider").in("sub_evento_id", subIds)
+      : { data: [] as { id: string; public_id: string; storage_provider?: string | null }[] };
 
   const allFotos = [...(fotosEvento ?? []), ...(fotosSub ?? [])];
   const allFotoIds = allFotos.map((f) => f.id);
-  const allPublicIds = allFotos.map((f) => f.public_id);
+  const cloudinaryPublicIds = allFotos
+    .filter((f) => (f.storage_provider ?? "cloudinary") === "cloudinary")
+    .map((f) => f.public_id);
 
   // order_items tiene FK a fotos: hay que borrar esas filas antes de borrar fotos
   if (allFotoIds.length > 0) {
@@ -149,9 +151,9 @@ export async function DELETE(req: Request) {
   const { error: delErr } = await supabaseAdmin.from("eventos").delete().eq("id", id);
   if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
 
-  if (allPublicIds.length > 0 && typeof cloudinary?.uploader?.destroy === "function") {
+  if (cloudinaryPublicIds.length > 0 && typeof cloudinary?.uploader?.destroy === "function") {
     Promise.all(
-      allPublicIds.map((publicId) => cloudinary.uploader.destroy(publicId).catch(() => {}))
+      cloudinaryPublicIds.map((publicId) => cloudinary.uploader.destroy(publicId).catch(() => {}))
     ).catch(() => {});
   }
 

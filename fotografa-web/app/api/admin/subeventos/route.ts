@@ -116,15 +116,18 @@ export async function DELETE(req: Request) {
   try {
     const { data: fotos, error: fotosErr } = await supabaseAdmin
       .from("fotos")
-      .select("id, public_id")
+      .select("id, public_id, storage_provider")
       .eq("sub_evento_id", id);
 
     if (fotosErr) {
       return NextResponse.json({ error: `Error al listar fotos: ${fotosErr.message}` }, { status: 500 });
     }
 
-    const fotoIds = (fotos ?? []).map((f) => f.id);
-    const publicIds = (fotos ?? []).map((f) => f.public_id);
+    const fotosList = fotos ?? [];
+    const fotoIds = fotosList.map((f) => f.id);
+    const cloudinaryPublicIds = fotosList
+      .filter((f) => (f.storage_provider ?? "cloudinary") === "cloudinary")
+      .map((f) => f.public_id);
 
     // Si hay order_items que referencian estas fotos, la FK impide borrar. Eliminamos esas filas primero.
     if (fotoIds.length > 0) {
@@ -151,10 +154,10 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: `Error al eliminar subevento: ${delErr.message}` }, { status: 500 });
     }
 
-    // Borrar en Cloudinary en segundo plano (no bloquea la respuesta)
-    if (publicIds.length > 0 && typeof cloudinary?.uploader?.destroy === "function") {
+    // Borrar en Cloudinary solo si las fotos estaban ahí (las de R2 se quedan en el bucket)
+    if (cloudinaryPublicIds.length > 0 && typeof cloudinary?.uploader?.destroy === "function") {
       Promise.all(
-        publicIds.map((publicId) =>
+        cloudinaryPublicIds.map((publicId) =>
           cloudinary.uploader.destroy(publicId).catch(() => {})
         )
       ).catch(() => {});

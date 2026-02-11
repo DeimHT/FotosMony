@@ -6,11 +6,15 @@ import { supabase } from "FotosMony/lib/supabaseClient";
 import { AdminHelpBox } from "FotosMony/components/ui/AdminHelpBox";
 
 type Carpeta = { id: string; nombre: string; descripcion?: string | null };
-type Foto = { id: string; public_id: string };
+type Foto = { id: string; public_id: string; storage_provider?: string | null };
 
-function cloudinaryUrl(publicId: string, w = 200) {
+const R2_BASE = (process.env.NEXT_PUBLIC_R2_PUBLIC_URL ?? "").replace(/\/$/, "");
+function fotoUrl(foto: Foto, w = 200): string {
+  if (foto.storage_provider === "cloudflare" && R2_BASE) {
+    return `${R2_BASE}/${foto.public_id}`;
+  }
   const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  return `https://res.cloudinary.com/${cloud}/image/upload/f_auto,q_auto,w_${w}/${publicId}`;
+  return `https://res.cloudinary.com/${cloud}/image/upload/f_auto,q_auto,w_${w}/${foto.public_id}`;
 }
 
 export default function AdminPortafolioPage() {
@@ -430,7 +434,7 @@ export default function AdminPortafolioPage() {
               Crear carpeta
             </h2>
             <p className="mt-1 text-sm text-slate-600">
-              Nombre de la carpeta y fotos. Se subirán a Cloudinary de una en una.
+              Nombre de la carpeta y fotos. Se subirán a Cloudflare R2.
             </p>
 
             <form onSubmit={handleCreateCarpeta} className="mt-6 space-y-4">
@@ -603,7 +607,7 @@ export default function AdminPortafolioPage() {
                           className="group relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
                         >
                           <img
-                            src={cloudinaryUrl(foto.public_id, 300)}
+                            src={fotoUrl(foto, 300)}
                             alt=""
                             className="aspect-square w-full object-cover"
                           />

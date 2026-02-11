@@ -1,5 +1,21 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
+
+const R2_ACCOUNT_ID = process.env.CLOUDFLARE_R2_ACCOUNT_ID;
+const R2_ACCESS_KEY = process.env.CLOUDFLARE_R2_ACCESS_KEY_ID;
+const R2_SECRET = process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY;
+const R2_BUCKET = process.env.CLOUDFLARE_R2_BUCKET_NAME;
+
+function getR2Client(): S3Client | null {
+  if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY || !R2_SECRET) return null;
+  return new S3Client({
+    region: "auto",
+    endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: { accessKeyId: R2_ACCESS_KEY, secretAccessKey: R2_SECRET },
+    forcePathStyle: true,
+  });
+}
 
 function getBearerToken(req: Request) {
   const h = req.headers.get("authorization") || "";
@@ -109,8 +125,25 @@ export async function DELETE(
   const auth = await requireAdmin(req);
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
+  const { data: service } = await auth.supabaseAdmin
+    .from("services")
+    .select("image_public_id")
+    .eq("id", id)
+    .single();
+
   const { error } = await auth.supabaseAdmin.from("services").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  if (service?.image_public_id && String(service.image_public_id).startsWith("services/") && R2_BUCKET) {
+    const r2 = getR2Client();
+    if (r2) {
+      try {
+        await r2.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: service.image_public_id }));
+      } catch {
+        // no bloqueamos la respuesta
+      }
+    }
+  }
 
   return NextResponse.json({ ok: true });
 }

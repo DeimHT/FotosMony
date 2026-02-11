@@ -5,13 +5,16 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "FotosMony/lib/supabaseClient";
 
-type Foto = { id: string; public_id: string };
+type Foto = { id: string; public_id: string; storage_provider?: string | null };
 type Carpeta = { id: string; nombre: string; descripcion?: string | null; fotos: Foto[] };
 
-function cldUrl(publicId: string, w = 600) {
+const R2_BASE = (process.env.NEXT_PUBLIC_R2_PUBLIC_URL ?? "").replace(/\/$/, "");
+function fotoUrl(foto: Foto, w = 600): string {
+  if (foto.storage_provider === "cloudflare" && R2_BASE) {
+    return `${R2_BASE}/${foto.public_id}`;
+  }
   const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  // Usar calidad 'auto:eco' para ahorrar ancho de banda en thumbnails
-  return `https://res.cloudinary.com/${cloud}/image/upload/f_auto,q_auto:eco,w_${w}/${publicId}`;
+  return `https://res.cloudinary.com/${cloud}/image/upload/f_auto,q_auto:eco,w_${w}/${foto.public_id}`;
 }
 
 export default function PortafolioPage() {
@@ -28,7 +31,7 @@ export default function PortafolioPage() {
 
       const { data, error } = await supabase
         .from("carpetas")
-        .select("id, nombre, descripcion, fotos ( id, public_id )")
+        .select("id, nombre, descripcion, fotos ( id, public_id, storage_provider )")
         .order("id", { ascending: false });
 
       if (!mounted) return;
@@ -88,9 +91,9 @@ export default function PortafolioPage() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {carpetas.map((carpeta) => {
             const totalFotos = carpeta.fotos?.length ?? 0;
-            const portadaPublicId = carpeta.fotos?.[0]?.public_id ?? null;
-            const coverUrl = portadaPublicId
-              ? cldUrl(portadaPublicId, 600)
+            const portadaFoto = carpeta.fotos?.[0];
+            const coverUrl = portadaFoto
+              ? fotoUrl(portadaFoto, 600)
               : "https://picsum.photos/seed/portafolio/600/400";
 
             return (
