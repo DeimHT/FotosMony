@@ -98,7 +98,7 @@ export default function AdminDashboardPage() {
     };
   }, [router]);
 
-  useEffect(() => {
+  const goToWebpay = useCallback(() => {
     if (!webpayPending || !webpayFormRef.current) return;
     webpayFormRef.current.submit();
   }, [webpayPending]);
@@ -140,8 +140,6 @@ export default function AdminDashboardPage() {
         return;
       }
       setWebpayPending({ url: webpayUrl, token: webpayToken });
-      // Para la prueba de transacción cancelada: token a ingresar en el formulario de Transbank
-      console.log("[Webpay prueba] Token de la transacción (úsalo en el formulario de prueba):", webpayToken);
     } catch {
       setTestWebpayError("Error de conexión.");
     } finally {
@@ -260,6 +258,37 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
+      {webpayPending && (
+        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-sm font-semibold text-slate-700">
+            Token para la prueba (p. ej. formulario &quot;Transacción cancelada&quot; de Transbank)
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <code className="flex-1 min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 break-all">
+              {webpayPending.token}
+            </code>
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(webpayPending!.token);
+              }}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+            >
+              Copiar
+            </button>
+            <button
+              type="button"
+              onClick={goToWebpay}
+              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+            >
+              Ir a Webpay
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-slate-500">
+            El token también queda en los logs del servidor (terminal o Vercel).
+          </p>
+        </div>
+      )}
       {webpayPending && (
         <form ref={webpayFormRef} method="POST" action={webpayPending.url} className="hidden">
           <input type="hidden" name="token_ws" value={webpayPending.token} />
