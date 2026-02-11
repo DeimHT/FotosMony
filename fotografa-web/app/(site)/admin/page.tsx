@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "FotosMony/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -21,6 +21,10 @@ export default function AdminDashboardPage() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
+  const [testWebpayLoading, setTestWebpayLoading] = useState(false);
+  const [testWebpayError, setTestWebpayError] = useState<string | null>(null);
+  const [webpayPending, setWebpayPending] = useState<{ url: string; token: string } | null>(null);
+  const webpayFormRef = useRef<HTMLFormElement>(null);
 
   const fetchMetrics = async (accessToken: string) => {
     const res = await fetch("/api/admin/metrics", {
@@ -94,26 +98,40 @@ export default function AdminDashboardPage() {
     };
   }, [router]);
 
-  if (loading) {
-    return (
-      <div className="mx-auto max-w-6xl px-4 py-8">
-        <h1 className="text-xl font-semibold text-slate-900">Panel Admin</h1>
-        <p className="mt-2 text-slate-600">Cargando...</p>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!webpayPending || !webpayFormRef.current) return;
+    webpayFormRef.current.submit();
+  }, [webpayPending]);
 
-  if (errorMsg) {
-    return (
-      <div className="mx-auto max-w-6xl px-4 py-8">
-        <h1 className="text-xl font-semibold text-slate-900">Panel Admin</h1>
-        <div className="mt-4 rounded-xl border bg-white p-4">
-          <p className="text-sm font-semibold text-red-600">Error</p>
-          <p className="mt-1 text-sm text-slate-700">{errorMsg}</p>
-        </div>
-      </div>
-    );
-  }
+  const handleTestWebpay = useCallback(async () => {
+    setTestWebpayError(null);
+    setTestWebpayLoading(true);
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) {
+        setTestWebpayError("Debes iniciar sesión.");
+        return;
+      }
+      const res = await fetch("/api/admin/test-webpay", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setTestWebpayError(json?.error ?? "No se pudo crear la prueba de Webpay.");
+        return;
+      }
+      const token = json.webpayToken;
+      setWebpayPending({ url: json.webpayUrl, token });
+      // Para la prueba de transacción cancelada: token a ingresar en el formulario de Transbank
+      console.log("[Webpay prueba] Token de la transacción (úsalo en el formulario de prueba):", token);
+    } catch {
+      setTestWebpayError("Error de conexión.");
+    } finally {
+      setTestWebpayLoading(false);
+    }
+  }, []);
 
   const handleResetOrders = async () => {
     if (
@@ -145,6 +163,27 @@ export default function AdminDashboardPage() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-8">
+        <h1 className="text-xl font-semibold text-slate-900">Panel Admin</h1>
+        <p className="mt-2 text-slate-600">Cargando...</p>
+      </div>
+    );
+  }
+
+  if (errorMsg) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-8">
+        <h1 className="text-xl font-semibold text-slate-900">Panel Admin</h1>
+        <div className="mt-4 rounded-xl border bg-white p-4">
+          <p className="text-sm font-semibold text-red-600">Error</p>
+          <p className="mt-1 text-sm text-slate-700">{errorMsg}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="flex flex-col gap-1">
@@ -173,19 +212,43 @@ export default function AdminDashboardPage() {
         <StatCard title="Órdenes totales" value={String(metrics?.totalOrders ?? 0)} />
       </div>
 
-      <div className="mt-4">
-        <button
-          type="button"
-          onClick={handleResetOrders}
-          disabled={resetting}
-          className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50"
-        >
-          {resetting ? "Reiniciando…" : "Reiniciar ventas de prueba"}
-        </button>
-        <p className="mt-1 text-xs text-slate-500">
-          Borra todas las órdenes e ítems de pedidos. Solo para limpiar datos de prueba.
-        </p>
+      <div className="mt-4 flex flex-wrap items-start gap-6">
+        <div>
+          <button
+            type="button"
+            onClick={handleTestWebpay}
+            disabled={testWebpayLoading}
+            className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100 disabled:opacity-50"
+          >
+            {testWebpayLoading ? "Creando…" : "Probar Webpay (50 CLP)"}
+          </button>
+          <p className="mt-1 text-xs text-slate-500">
+            Crea una orden de $50 y te lleva a Webpay para probar con tarjeta real (sin usar el carrito).
+          </p>
+          {testWebpayError && (
+            <p className="mt-1 text-xs font-medium text-red-600">{testWebpayError}</p>
+          )}
+        </div>
+        <div>
+          <button
+            type="button"
+            onClick={handleResetOrders}
+            disabled={resetting}
+            className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+          >
+            {resetting ? "Reiniciando…" : "Reiniciar ventas de prueba"}
+          </button>
+          <p className="mt-1 text-xs text-slate-500">
+            Borra todas las órdenes e ítems de pedidos. Solo para limpiar datos de prueba.
+          </p>
+        </div>
       </div>
+
+      {webpayPending && (
+        <form ref={webpayFormRef} method="POST" action={webpayPending.url} className="hidden">
+          <input type="hidden" name="token_ws" value={webpayPending.token} />
+        </form>
+      )}
 
       <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
         <AdminLinkCard
