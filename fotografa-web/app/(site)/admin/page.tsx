@@ -117,13 +117,29 @@ export default function AdminDashboardPage() {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
-      const json = await res.json();
+      let json: { error?: string } = {};
+      try {
+        json = await res.json();
+      } catch {
+        // Respuesta no JSON (p. ej. 405 con HTML)
+      }
       if (!res.ok) {
-        setTestWebpayError(json?.error ?? "No se pudo crear la prueba de Webpay.");
+        if (res.status === 405) {
+          setTestWebpayError(
+            "Endpoint no disponible (405). Asegúrate de que la ruta /api/admin/test-webpay está en el repositorio y desplegada."
+          );
+        } else {
+          setTestWebpayError(json?.error ?? "No se pudo crear la prueba de Webpay.");
+        }
         return;
       }
-      const webpayToken = json.webpayToken;
-      setWebpayPending({ url: json.webpayUrl, token: webpayToken });
+      const webpayToken = (json as { webpayToken?: string }).webpayToken;
+      const webpayUrl = (json as { webpayUrl?: string }).webpayUrl;
+      if (!webpayUrl || !webpayToken) {
+        setTestWebpayError("La respuesta del servidor no incluyó URL o token de Webpay.");
+        return;
+      }
+      setWebpayPending({ url: webpayUrl, token: webpayToken });
       // Para la prueba de transacción cancelada: token a ingresar en el formulario de Transbank
       console.log("[Webpay prueba] Token de la transacción (úsalo en el formulario de prueba):", webpayToken);
     } catch {
