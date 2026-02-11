@@ -3,6 +3,12 @@ import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import { EventosRecientes } from "FotosMony/components/ui/EventosRecientes";
 import { CTAFinal } from "FotosMony/components/ui/CTAFinal";
+import {
+  mergeHero,
+  mergeAbout,
+  heroImageUrl,
+  aboutImageUrl,
+} from "FotosMony/lib/homeContent";
 
 const baseUrl =
   process.env.NEXT_PUBLIC_APP_URL?.startsWith("http") === true
@@ -19,12 +25,10 @@ export const metadata = {
   },
 };
 
-// Imágenes de la Región de los Lagos / Patagonia chilena (Unsplash, uso libre)
-const IMG_HERO =
-  "https://images.unsplash.com/photo-1718147155878-e2baab858e74?w=900&h=1100&fit=crop&q=80";
 const IMG_LAGOS_LANDSCAPE =
   "https://images.unsplash.com/photo-1493724798364-c4ca5e3f5fd3?w=1200&h=800&fit=crop&q=80";
 const PLACEHOLDER_SERVICIO = IMG_LAGOS_LANDSCAPE;
+const R2_PUBLIC = (process.env.NEXT_PUBLIC_R2_PUBLIC_URL ?? "").replace(/\/$/, "");
 
 export const revalidate = 60;
 
@@ -33,6 +37,16 @@ export default async function HomePage() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
+
+  const { data: homeRows = [] } = await supabase
+    .from("home_sections")
+    .select("id, content")
+    .in("id", ["hero", "about"]);
+  const homeById = new Map((homeRows as { id: string; content: unknown }[]).map((r) => [r.id, r.content]));
+  const heroContent = mergeHero(homeById.get("hero"));
+  const aboutContent = mergeAbout(homeById.get("about"));
+  const heroImgSrc = heroImageUrl(heroContent, R2_PUBLIC || undefined);
+  const aboutImgSrc = aboutImageUrl(aboutContent, R2_PUBLIC || undefined);
 
   const { data: serviciosDestacados = [] } = await supabase
     .from("services")
@@ -110,17 +124,16 @@ export default async function HomePage() {
           {/* Texto */}
           <div>
             <h1 className="text-4xl font-semibold leading-tight text-slate-900 md:text-5xl">
-              Capturamos tus
-              <br />
-              momentos más
-              <br />
-              especiales
+              {heroContent.title.split("\n").map((line, i) => (
+                <span key={i}>
+                  {line}
+                  {i < heroContent.title.split("\n").length - 1 && <br />}
+                </span>
+              ))}
             </h1>
 
             <p className="mt-6 max-w-xl text-base text-slate-600">
-              En FotosMony ofrecemos servicios profesionales de fotografía en la
-              hermosa región de los lagos. Desde sesiones fotográficas hasta
-              impresión de alta calidad y venta de fotos digitales.
+              {heroContent.subtitle}
             </p>
 
             <div className="mt-8 flex flex-wrap gap-4">
@@ -128,14 +141,14 @@ export default async function HomePage() {
                 href="/servicios"
                 className="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-800 transition"
               >
-                Ver Nuestros Servicios
+                {heroContent.cta_primary_text}
               </Link>
 
               <Link
                 href="/contacto"
                 className="rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-50 transition"
               >
-                Contactar Ahora
+                {heroContent.cta_secondary_text}
               </Link>
             </div>
           </div>
@@ -144,7 +157,7 @@ export default async function HomePage() {
           <div className="relative">
             <div className="relative overflow-hidden rounded-3xl shadow-xl">
               <Image
-                src={IMG_HERO}
+                src={heroImgSrc}
                 alt="Paisaje Región de los Lagos, Chile — sesión fotográfica"
                 width={900}
                 height={1100}
@@ -162,10 +175,10 @@ export default async function HomePage() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-900">
-                    +500 Sesiones
+                    {heroContent.badge_title}
                   </p>
                   <p className="text-xs text-slate-600">
-                    Realizadas con éxito
+                    {heroContent.badge_subtitle}
                   </p>
                 </div>
               </div>
@@ -232,7 +245,7 @@ export default async function HomePage() {
           <div className="relative">
             <div className="relative overflow-hidden rounded-3xl shadow-xl">
               <img
-                src={IMG_LAGOS_LANDSCAPE}
+                src={aboutImgSrc}
                 alt="Paisajes Región de los Lagos, Chile"
                 className="h-full w-full object-cover"
                 loading="lazy"
@@ -247,11 +260,10 @@ export default async function HomePage() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-900">
-                    Ubicación Privilegiada
+                    {aboutContent.card_title}
                   </p>
                   <p className="mt-1 text-xs text-slate-600">
-                    Operamos en toda la hermosa región de los lagos, aprovechando paisajes
-                    naturales únicos como telón de fondo.
+                    {aboutContent.card_text}
                   </p>
                 </div>
               </div>
@@ -261,72 +273,33 @@ export default async function HomePage() {
           {/* Texto */}
           <div>
             <h2 className="text-3xl font-semibold text-slate-900">
-              Sobre FotosMony
+              {aboutContent.section_title}
             </h2>
 
             <p className="mt-4 text-slate-600">
-              Somos un estudio de fotografía especializado en capturar los momentos
-              más importantes de tu vida. Con sede en la región de los lagos,
-              aprovechamos los paisajes naturales únicos de nuestra zona para crear
-              fotografías verdaderamente memorables.
+              {aboutContent.intro}
             </p>
 
             <ul className="mt-6 space-y-4">
-              <li className="flex items-start gap-3">
-                <span className="mt-1 h-2 w-2 rounded-full bg-slate-900" />
-                <div>
-                  <p className="font-semibold text-slate-900">
-                    Calidad Profesional
-                  </p>
-                  <p className="text-sm text-slate-600">
-                    Utilizamos equipos de última generación y técnicas avanzadas de edición.
-                  </p>
-                </div>
-              </li>
-
-              <li className="flex items-start gap-3">
-                <span className="mt-1 h-2 w-2 rounded-full bg-slate-900" />
-                <div>
-                  <p className="font-semibold text-slate-900">
-                    Servicio Personalizado
-                  </p>
-                  <p className="text-sm text-slate-600">
-                    Adaptamos cada sesión a tus necesidades y preferencias específicas.
-                  </p>
-                </div>
-              </li>
-
-              <li className="flex items-start gap-3">
-                <span className="mt-1 h-2 w-2 rounded-full bg-slate-900" />
-                <div>
-                  <p className="font-semibold text-slate-900">
-                    Entorno Natural
-                  </p>
-                  <p className="text-sm text-slate-600">
-                    Los lagos y paisajes naturales proporcionan el escenario perfecto.
-                  </p>
-                </div>
-              </li>
+              {aboutContent.bullets.map((b, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <span className="mt-1 h-2 w-2 rounded-full bg-slate-900" />
+                  <div>
+                    <p className="font-semibold text-slate-900">{b.title}</p>
+                    <p className="text-sm text-slate-600">{b.description}</p>
+                  </div>
+                </li>
+              ))}
             </ul>
 
             {/* Métricas */}
             <div className="mt-10 grid grid-cols-2 gap-6 sm:grid-cols-4">
-              <div>
-                <p className="text-2xl font-semibold text-slate-900">500+</p>
-                <p className="text-sm text-slate-600">Clientes Satisfechos</p>
-              </div>
-              <div>
-                <p className="text-2xl font-semibold text-slate-900">5+</p>
-                <p className="text-sm text-slate-600">Años de Experiencia</p>
-              </div>
-              <div>
-                <p className="text-2xl font-semibold text-slate-900">24h</p>
-                <p className="text-sm text-slate-600">Entrega Express</p>
-              </div>
-              <div>
-                <p className="text-2xl font-semibold text-slate-900">100%</p>
-                <p className="text-sm text-slate-600">Región de los Lagos</p>
-              </div>
+              {aboutContent.stats.map((s, i) => (
+                <div key={i}>
+                  <p className="text-2xl font-semibold text-slate-900">{s.value}</p>
+                  <p className="text-sm text-slate-600">{s.label}</p>
+                </div>
+              ))}
             </div>
           </div>
 
