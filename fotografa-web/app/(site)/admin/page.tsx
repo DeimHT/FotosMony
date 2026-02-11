@@ -122,10 +122,10 @@ export default function AdminDashboardPage() {
         setTestWebpayError(json?.error ?? "No se pudo crear la prueba de Webpay.");
         return;
       }
-      const token = json.webpayToken;
-      setWebpayPending({ url: json.webpayUrl, token });
+      const webpayToken = json.webpayToken;
+      setWebpayPending({ url: json.webpayUrl, token: webpayToken });
       // Para la prueba de transacción cancelada: token a ingresar en el formulario de Transbank
-      console.log("[Webpay prueba] Token de la transacción (úsalo en el formulario de prueba):", token);
+      console.log("[Webpay prueba] Token de la transacción (úsalo en el formulario de prueba):", webpayToken);
     } catch {
       setTestWebpayError("Error de conexión.");
     } finally {
