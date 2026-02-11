@@ -25,7 +25,11 @@ Este documento resume cómo está integrado Webpay Plus en **fotografa-web** par
 
 3. **Retorno (return_url)**  
    - Transbank redirige al comercio a la `return_url` con el parámetro `token_ws`.  
-   - En este proyecto: `return_url` = `{APP_URL}/api/checkout/return`.
+   - En este proyecto: `return_url` = `{APP_URL}/api/checkout/return`.  
+   - **Casos según documentación Webpay:**  
+     - **Pago completado:** llega `token_ws` → se confirma (commit).  
+     - **Usuario canceló / error en formulario + "reintentar":** pueden llegar `token_ws`, `TBK_TOKEN`, `TBK_ID_SESION`, `TBK_ORDEN_COMRA`; si llega `TBK_TOKEN` (o solo sesión/orden) no se hace commit y se muestra mensaje amigable.  
+     - **Timeout (5 min sin actividad en formulario):** llegan solo `TBK_ID_SESION` y `TBK_ORDEN_COMRA`, **no llega token**; en el proyecto se trata igual que cancelación y se redirige a mensaje amigable.
 
 4. **Confirmar transacción (commit)**  
    - El backend debe llamar a la API de Transbank para **confirmar** la transacción usando el `token_ws`.  
