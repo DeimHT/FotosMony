@@ -43,7 +43,7 @@ export default function Footer() {
             </div>
 
             <p className="mt-4 max-w-sm text-sm text-slate-400">
-              Tu estudio de fotografía de confianza en la región de los lagos.
+              Tu estudio de fotografía de confianza en la Región de Los Lagos.
               Capturamos momentos únicos con la calidad profesional que mereces.
             </p>
 
