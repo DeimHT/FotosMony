@@ -6,7 +6,6 @@ Sitio web profesional para una fotógrafa: portafolio, galerías de eventos por 
 
 - **Next.js 16** (App Router) + **TypeScript**
 - **Supabase** — auth, base de datos, perfiles
-- **Cloudinary** — transformaciones y CDN de imágenes (legacy)
 - **Cloudflare R2** — almacenamiento de fotos (nuevas subidas)
 - **Resend** — envío de emails (enlaces de descarga tras el pago)
 - **Webpay Plus (Transbank)** — pagos con tarjeta
