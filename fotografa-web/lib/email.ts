@@ -7,6 +7,8 @@ export type OrderItemForEmail = {
   public_id: string;
   evento_nombre: string;
   subevento_nombre: string | null;
+  /** cloudflare = R2; si no o null = Cloudinary */
+  storage_provider?: string | null;
 };
 
 export async function sendOrderPhotosEmail(
@@ -24,16 +26,19 @@ export async function sendOrderPhotosEmail(
   }
 
   const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? "";
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://fotosmony.cl";
+  const r2PublicUrl = (process.env.CLOUDFLARE_R2_PUBLIC_URL ?? "").replace(/\/$/, "");
 
-  // URL original en Cloudinary (sin transformación = máxima resolución sin marca de agua)
-  const photoUrl = (publicId: string) =>
-    `https://res.cloudinary.com/${cloud}/image/upload/${publicId}`;
+  const photoUrl = (item: OrderItemForEmail): string => {
+    if (item.storage_provider === "cloudflare" && r2PublicUrl) {
+      return `${r2PublicUrl}/${item.public_id}`;
+    }
+    return `https://res.cloudinary.com/${cloud}/image/upload/${item.public_id}`;
+  };
 
   const linksHtml = items
     .map(
       (item) =>
-        `<li style="margin-bottom:8px"><a href="${photoUrl(item.public_id)}" style="color:#0f172a">${item.evento_nombre}${item.subevento_nombre ? ` · ${item.subevento_nombre}` : ""}</a></li>`
+        `<li style="margin-bottom:8px"><a href="${photoUrl(item)}" style="color:#0f172a">${item.evento_nombre}${item.subevento_nombre ? ` · ${item.subevento_nombre}` : ""}</a></li>`
     )
     .join("");
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "FotosMony/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -20,11 +20,6 @@ export default function AdminDashboardPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [resetting, setResetting] = useState(false);
-  const [testWebpayLoading, setTestWebpayLoading] = useState(false);
-  const [testWebpayError, setTestWebpayError] = useState<string | null>(null);
-  const [webpayPending, setWebpayPending] = useState<{ url: string; token: string } | null>(null);
-  const webpayFormRef = useRef<HTMLFormElement>(null);
 
   const fetchMetrics = async (accessToken: string) => {
     const res = await fetch("/api/admin/metrics", {
@@ -98,85 +93,6 @@ export default function AdminDashboardPage() {
     };
   }, [router]);
 
-  const goToWebpay = useCallback(() => {
-    if (!webpayPending || !webpayFormRef.current) return;
-    webpayFormRef.current.submit();
-  }, [webpayPending]);
-
-  const handleTestWebpay = useCallback(async () => {
-    setTestWebpayError(null);
-    setTestWebpayLoading(true);
-    try {
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
-      if (!token) {
-        setTestWebpayError("Debes iniciar sesión.");
-        return;
-      }
-      const res = await fetch("/api/admin/test-webpay", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      let json: { error?: string } = {};
-      try {
-        json = await res.json();
-      } catch {
-        // Respuesta no JSON (p. ej. 405 con HTML)
-      }
-      if (!res.ok) {
-        if (res.status === 405) {
-          setTestWebpayError(
-            "Endpoint no disponible (405). Asegúrate de que la ruta /api/admin/test-webpay está en el repositorio y desplegada."
-          );
-        } else {
-          setTestWebpayError(json?.error ?? "No se pudo crear la prueba de Webpay.");
-        }
-        return;
-      }
-      const webpayToken = (json as { webpayToken?: string }).webpayToken;
-      const webpayUrl = (json as { webpayUrl?: string }).webpayUrl;
-      if (!webpayUrl || !webpayToken) {
-        setTestWebpayError("La respuesta del servidor no incluyó URL o token de Webpay.");
-        return;
-      }
-      setWebpayPending({ url: webpayUrl, token: webpayToken });
-    } catch {
-      setTestWebpayError("Error de conexión.");
-    } finally {
-      setTestWebpayLoading(false);
-    }
-  }, []);
-
-  const handleResetOrders = async () => {
-    if (
-      !confirm(
-        "¿Reiniciar todas las órdenes y ventas de prueba? Se borrarán todos los pedidos e ítems. Esta acción no se puede deshacer."
-      )
-    )
-      return;
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-    if (!token) return;
-    setResetting(true);
-    try {
-      const res = await fetch("/api/admin/reset-orders", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-      if (res.ok) {
-        const updated = await fetchMetrics(token);
-        setMetrics(updated);
-      } else {
-        alert(json?.error ?? "No se pudo reiniciar.");
-      }
-    } catch {
-      alert("Error de conexión.");
-    } finally {
-      setResetting(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="mx-auto max-w-6xl px-4 py-8">
@@ -214,7 +130,6 @@ export default function AdminDashboardPage() {
             "Este es tu centro de control. Desde aquí puedes ver tus ventas y acceder a todas las secciones.",
             "Las tarjetas de arriba muestran cuánto has vendido y el estado de tus pedidos.",
             "Usa los botones de abajo para ir a cada sección: subir fotos, crear eventos, etc.",
-            "El botón 'Reiniciar ventas de prueba' borra todos los pedidos. Úsalo solo para limpiar datos de prueba.",
           ]}
         />
       </div>
@@ -225,75 +140,6 @@ export default function AdminDashboardPage() {
         <StatCard title="Órdenes pendientes" value={String(metrics?.pendingOrders ?? 0)} />
         <StatCard title="Órdenes totales" value={String(metrics?.totalOrders ?? 0)} />
       </div>
-
-      <div className="mt-4 flex flex-wrap items-start gap-6">
-        <div>
-          <button
-            type="button"
-            onClick={handleTestWebpay}
-            disabled={testWebpayLoading}
-            className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100 disabled:opacity-50"
-          >
-            {testWebpayLoading ? "Creando…" : "Probar Webpay (50 CLP)"}
-          </button>
-          <p className="mt-1 text-xs text-slate-500">
-            Crea una orden de $50 y te lleva a Webpay para probar con tarjeta real (sin usar el carrito).
-          </p>
-          {testWebpayError && (
-            <p className="mt-1 text-xs font-medium text-red-600">{testWebpayError}</p>
-          )}
-        </div>
-        <div>
-          <button
-            type="button"
-            onClick={handleResetOrders}
-            disabled={resetting}
-            className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50"
-          >
-            {resetting ? "Reiniciando…" : "Reiniciar ventas de prueba"}
-          </button>
-          <p className="mt-1 text-xs text-slate-500">
-            Borra todas las órdenes e ítems de pedidos. Solo para limpiar datos de prueba.
-          </p>
-        </div>
-      </div>
-
-      {webpayPending && (
-        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-sm font-semibold text-slate-700">
-            Token para la prueba (p. ej. formulario &quot;Transacción cancelada&quot; de Transbank)
-          </p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <code className="flex-1 min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 break-all">
-              {webpayPending.token}
-            </code>
-            <button
-              type="button"
-              onClick={() => {
-                navigator.clipboard.writeText(webpayPending!.token);
-              }}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-            >
-              Copiar
-            </button>
-            <button
-              type="button"
-              onClick={goToWebpay}
-              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
-            >
-              Ir a Webpay
-            </button>
-          </div>
-          <p className="mt-2 text-xs text-slate-500">
-            El token también queda en los logs del servidor (terminal o Vercel).
-          </p>
-        </div>
-      )}
-      {webpayPending && (
-        <form ref={webpayFormRef} method="POST" action={webpayPending.url} className="hidden">
-          <input type="hidden" name="token_ws" value={webpayPending.token} />
-        </form>
-      )}
 
       <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
         <AdminLinkCard

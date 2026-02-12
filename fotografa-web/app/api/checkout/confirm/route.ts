@@ -49,7 +49,7 @@ export async function POST(req: Request) {
 
       const { data: items } = await supabaseAdmin
         .from("order_items")
-        .select("public_id, evento_nombre, subevento_nombre")
+        .select("public_id, evento_nombre, subevento_nombre, foto_id")
         .eq("order_id", order.id);
 
       let customerEmail: string;
@@ -73,14 +73,26 @@ export async function POST(req: Request) {
       }
 
       if (customerEmail && Array.isArray(items) && items.length > 0) {
+        const fotoIds = [...new Set((items as { foto_id?: string }[]).map((i) => i.foto_id).filter(Boolean))] as string[];
+        const storageByFotoId: Record<string, string | null> = {};
+        if (fotoIds.length > 0) {
+          const { data: fotos } = await supabaseAdmin
+            .from("fotos")
+            .select("id, storage_provider")
+            .in("id", fotoIds);
+          for (const f of fotos ?? []) {
+            storageByFotoId[f.id] = f.storage_provider ?? null;
+          }
+        }
         try {
           await sendOrderPhotosEmail(
             customerEmail,
             customerName,
-            items.map((i) => ({
+            (items as { public_id: string; evento_nombre: string; subevento_nombre: string | null; foto_id?: string }[]).map((i) => ({
               public_id: i.public_id,
               evento_nombre: i.evento_nombre,
               subevento_nombre: i.subevento_nombre,
+              storage_provider: storageByFotoId[i.foto_id ?? ""] ?? null,
             })),
             order.total_clp
           );
