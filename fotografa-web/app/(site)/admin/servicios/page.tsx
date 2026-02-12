@@ -221,8 +221,7 @@ export default function AdminServiciosPage() {
 
     const data = await res.json();
     if (!res.ok) {
-      console.log("PUT /services error:", data); // <-- clave
-      setErrorMsg(data?.error ?? JSON.stringify(data) ?? "No se pudo guardar");
+      setErrorMsg(data?.error ?? "No se pudo guardar");
       setBusyId(null);
       return;
     }

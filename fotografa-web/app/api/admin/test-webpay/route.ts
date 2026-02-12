@@ -70,8 +70,9 @@ export async function POST(req: Request) {
       .update({ webpay_token: webpay.token })
       .eq("id", order.id);
 
-    // Log para pruebas (transacción cancelada): ver en terminal o en logs de Vercel
-    console.log("[Webpay prueba] Token (para formulario de prueba Transbank):", webpay.token);
+    if (process.env.NODE_ENV === "development") {
+      console.log("[Webpay prueba] Token (formulario prueba Transbank):", webpay.token);
+    }
 
     return NextResponse.json({
       orderId: order.id,

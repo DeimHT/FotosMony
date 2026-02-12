@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FotosMony — Sitio web para fotógrafa
 
-## Getting Started
+Sitio web profesional para una fotógrafa: portafolio, galerías de eventos por compra, carrito, checkout con Webpay (Transbank) y panel de administración.
 
-First, run the development server:
+## Stack
+
+- **Next.js 16** (App Router) + **TypeScript**
+- **Supabase** — auth, base de datos, perfiles
+- **Cloudinary** — transformaciones y CDN de imágenes (legacy)
+- **Cloudflare R2** — almacenamiento de fotos (nuevas subidas)
+- **Resend** — envío de emails (enlaces de descarga tras el pago)
+- **Webpay Plus (Transbank)** — pagos con tarjeta
+- **Tailwind CSS** — estilos
+
+## Funcionalidades
+
+- **Público:** Inicio editable, eventos y subeventos con galerías, compra de fotos, carrito, checkout con Webpay, envío de enlaces por email (R2 o Cloudinary según la foto), portafolio, servicios, contacto, búsqueda.
+- **Admin:** Panel con métricas, gestión de eventos/subeventos, subida de fotos (R2), precios, portafolio, clientes, mensajes de contacto, configuración (marca de agua, secciones del home).
+
+## Requisitos
+
+- Node.js 18+
+- Cuenta en Supabase, Cloudinary (opcional si todo está en R2), Cloudflare R2, Resend. Para pagos: comercio en Transbank.
+
+## Instalación
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/tu-usuario/fotografa-web.git
+cd fotografa-web
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Copia las variables de entorno y complétalas:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cp .env.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Descripción de cada variable en `.env.example`. Las obligatorias mínimas para desarrollo son: Supabase (URL, anon key, service role), Cloudinary (cloud name y, si usas galerías, API key/secret), R2 (si subes fotos desde el admin) y `NEXT_PUBLIC_APP_URL`.
 
-## Learn More
+## Scripts
 
-To learn more about Next.js, take a look at the following resources:
+| Comando        | Descripción                    |
+|----------------|--------------------------------|
+| `npm run dev`  | Servidor de desarrollo         |
+| `npm run build`| Build de producción            |
+| `npm run start`| Servidor de producción         |
+| `npm run lint` | Ejecutar ESLint                |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Estructura del proyecto
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+app/
+  (site)/          # Rutas públicas: inicio, eventos, carrito, contacto, etc.
+  (auth)/          # Login y registro
+  api/             # API Routes: checkout, admin, contacto, búsqueda, etc.
+components/        # Componentes UI y contexto (carrito)
+lib/               # Lógica compartida: Supabase, Cloudinary, email, Webpay, etc.
+docs/              # Documentación y scripts SQL (esquemas, migraciones, Webpay)
+scripts/           # Scripts de migración (Cloudinary → R2, etc.)
+public/            # Assets estáticos
+```
 
-## Deploy on Vercel
+La documentación técnica (Webpay, variables de entorno del checkout, optimizaciones, migración a R2) está en la carpeta **`docs/`**.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Despliegue
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+El proyecto está pensado para desplegar en **Vercel**. Configura las mismas variables de entorno en el panel del proyecto y, si usas Webpay en producción, define `WEBPAY_BASE_URL` con la URL de producción de Transbank.
+
+---
+
+Proyecto de portfolio. Uso libre bajo tu criterio para referencia o aprendizaje.

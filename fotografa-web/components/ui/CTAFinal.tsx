@@ -1,7 +1,7 @@
 import Link from "next/link";
 
-const WHATSAPP_URL =
-  "https://wa.me/569XXXXXXXX?text=Hola%20FotosMony%2C%20me%20gustar%C3%ADa%20reservar%20una%20sesi%C3%B3n%20%F0%9F%93%B7";
+const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "56900000000";
+const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER.replace(/\D/g, "")}?text=${encodeURIComponent("Hola FotosMony, me gustaría reservar una sesión 📷")}`;
 
 export function CTAFinal() {
   return (
