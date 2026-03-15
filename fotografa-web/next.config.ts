@@ -1,9 +1,19 @@
 import type { NextConfig } from "next";
 
-const r2Hostname =
-  typeof process.env.NEXT_PUBLIC_R2_PUBLIC_URL === "string" && process.env.NEXT_PUBLIC_R2_PUBLIC_URL
-    ? new URL(process.env.NEXT_PUBLIC_R2_PUBLIC_URL).hostname
-    : null;
+const r2PublicUrlRaw =
+  process.env.NEXT_PUBLIC_R2_PUBLIC_URL ||
+  process.env.CLOUDFLARE_R2_PUBLIC_URL ||
+  "";
+
+const r2Hostname = r2PublicUrlRaw
+  ? (() => {
+      try {
+        return new URL(r2PublicUrlRaw).hostname;
+      } catch {
+        return null;
+      }
+    })()
+  : null;
 
 const nextConfig: NextConfig = {
   images: {
